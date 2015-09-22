@@ -1,0 +1,32 @@
+{
+  "name": "kendo-elasticsearch",
+  "version": "1.0.2",
+  "description": "A Kendo DataSource extension so you can load data into your [Kendo UI Grid](http://docs.telerik.com/kendo-ui/api/javascript/ui/grid) from an [ElasticSearch](https://www.elasticsearch.org/) index.",
+  "main": "kendo-elasticsearch.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "karma start"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MGDIS/kendo-elasticsearch.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MGDIS/kendo-elasticsearch/issues"
+  },
+  "homepage": "https://github.com/MGDIS/kendo-elasticsearch#readme",
+  "devDependencies": {
+    "elasticsearch": "^8.2.0",
+    "json-schema-faker": "^0.2.0",
+    "karma": "^0.13.9",
+    "karma-chrome-launcher": "^0.2.0",
+    "karma-mocha": "^0.2.0",
+    "karma-qunit": "^0.1.5",
+    "mocha": "^2.3.0",
+    "request": "^2.61.0"
+  }
+}
