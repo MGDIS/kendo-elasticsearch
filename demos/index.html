@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset='utf-8'>
+  <title>Kendo Elasticsearch - demos</title>
+
+  <!--<link rel='stylesheet' href='http://kendo.cdn.telerik.com/2014.1.318/styles/kendo.common.min.css'>-->
+  <link rel='stylesheet' href='../bower_components/kendo-ui/styles/kendo.common.min.css'>
+  <!--<link rel='stylesheet' href='http://kendo.cdn.telerik.com/2014.1.318/styles/kendo.default.min.css'>-->
+  <link rel='stylesheet' href='../bower_components/kendo-ui/styles/kendo.default.min.css'>
+</head>
+
+<body>
+  <h1>Kendo Elasticsearch - demos</h1>
+
+  <div id='grid'></div>
+
+  <!--<script src='https://code.jquery.com/jquery-2.1.4.min.js'></script>-->
+  <script src='../bower_components/jquery/jquery.min.js'></script>
+  <!--<script src='http://kendo.cdn.telerik.com/2014.1.318/js/kendo.web.min.js'></script>-->
+  <script src='../bower_components/kendo-ui/src/js/kendo.web.js'></script>
+  <!--<script src='https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js'></script>-->
+  <script src='../bower_components/moment/min/moment.min.js'></script>
+  <script src='../kendo-elasticsearch.js'></script>
+
+  <script>
+    $(document).ready(function() {
+      $('#grid').kendoGrid({
+
+        // so here go configuration options for the Kendo UI Grid
+
+        // configure the datasource to be an ElasticSearchDataSource
+        dataSource: new kendo.data.ElasticSearchDataSource({
+          transport: {
+            read: {
+              url: 'http://localhost:9200/kendo-elasticsearch-demo/person/_search/'
+            }
+          },
+          pageSize: 20,
+
+          schema: {
+            model: {
+              fields: {
+                firstName: {
+                  type: 'string',
+                  esFilterSubField: 'lowercase',
+                  esName: 'name.firstName'
+                },
+                lastName: {
+                  type: 'string',
+                  esFilterSubField: 'lowercase',
+                  esName: 'name.lastName'
+                },
+                city: {
+                  type: 'string',
+                  esFilterSubField: 'lowercase'
+                },
+                emails: {
+                  type: 'string',
+                  esFilterSubField: 'lowercase'
+                },
+                birthDate: {
+                  type: 'date'
+                }
+              }
+            }
+          },
+
+          // server-side paging, filtering and sorting are enabled
+          sort: {
+            field: 'birthDate',
+            dir: 'desc'
+          }
+        }),
+
+        // other grid options besides the datasource
+        sortable: true,
+        pageable: true,
+        filterable: true,
+        columns: [{
+          field: 'birthDate'
+        }, {
+          field: 'firstName'
+        }, {
+          field: 'lastName'
+        }, {
+          field: 'city'
+        }, {
+          field: 'emails'
+        }]
+      });
+    });
+  </script>
+
+</body>
+
+</html>

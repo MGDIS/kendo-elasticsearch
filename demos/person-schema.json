@@ -1,0 +1,34 @@
+{
+  "type": "object",
+  "required": ["firstName", "lastName"],
+  "properties": {
+    "birthDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "name": {
+      "type": "object",
+      "properties": {
+        "firstName": {
+          "type": "string",
+          "faker": "name.firstName"
+        },
+        "lastName": {
+          "type": "string",
+          "faker": "name.lastName"
+        }
+      }
+    },
+    "city": {
+      "type": "string",
+      "faker": "address.city"
+    },
+    "emails": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "faker": "internet.email"
+      }
+    }
+  }
+}

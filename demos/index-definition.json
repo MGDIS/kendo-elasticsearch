@@ -1,0 +1,38 @@
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "raw_lowercase": {
+          "tokenizer": "keyword",
+          "filter": [
+            "lowercase"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "person": {
+      "dynamic_templates": [{
+        "string_fields": {
+          "mapping": {
+            "index": "analyzed",
+            "omit_norms": true,
+            "type": "string",
+            "analyzer": "french",
+            "fields": {
+              "lowercase": {
+                "index": "analyzed",
+                "analyzer": "raw_lowercase",
+                "ignore_above": 256,
+                "type": "string"
+              }
+            }
+          },
+          "match_mapping_type": "string",
+          "match": "*"
+        }
+      }]
+    }
+  }
+}
