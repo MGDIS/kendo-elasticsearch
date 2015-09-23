@@ -54,7 +54,8 @@
                 },
                 city: {
                   type: 'string',
-                  esFilterSubField: 'lowercase'
+                  esFilterSubField: 'lowercase',
+                  esAggSubField: 'raw'
                 },
                 emails: {
                   type: 'string',
@@ -62,6 +63,9 @@
                 },
                 birthDate: {
                   type: 'date'
+                },
+                siblings: {
+                  type: 'number'
                 }
               }
             }
@@ -71,13 +75,31 @@
           sort: {
             field: 'birthDate',
             dir: 'desc'
-          }
+          },
+
+          aggregate: [{
+            field: "city",
+            aggregate: "count"
+          }, {
+            field: "siblings",
+            aggregate: "min"
+          }, {
+            field: "siblings",
+            aggregate: "max"
+          }, {
+            field: "siblings",
+            aggregate: "sum"
+          }, {
+            field: "siblings",
+            aggregate: "average"
+          }]
         }),
 
         // other grid options besides the datasource
         sortable: true,
         pageable: true,
         filterable: true,
+        groupable: true,
         columns: [{
           field: 'birthDate'
         }, {
@@ -85,9 +107,14 @@
         }, {
           field: 'lastName'
         }, {
-          field: 'city'
+          field: 'city',
+          groupHeaderTemplate: "City: #=value#",
+          footerTemplate: "Cardinality: #=count#"
         }, {
           field: 'emails'
+        }, {
+          field: 'siblings',
+          footerTemplate: "Min: #=min#, Max: #=max#, Sum: #=sum#, Avg: #=average#"
         }]
       });
     });

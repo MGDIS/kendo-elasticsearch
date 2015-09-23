@@ -26,6 +26,11 @@
                 "analyzer": "raw_lowercase",
                 "ignore_above": 256,
                 "type": "string"
+              },
+              "raw": {
+                "index": "not_analyzed",
+                "ignore_above": 256,
+                "type": "string"
               }
             }
           },

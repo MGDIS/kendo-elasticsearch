@@ -35,11 +35,17 @@
 
       // Create a map mapping Kendo field names to ElasticSearch field names. We have to allow ElasticSearch field
       // names to be different because ES likes an "@" in field names while Kendo fails on that.
+      // Filtering and aggregating can be based on a subfield if esFilterSubField or esAggSubField are specified.
+      // Typical use case is the main field is analyzed, but it has a subfield that is not (or only with a minimal analyzer)
       var fields = initOptions.schema.model.fields;
       this._esFieldMap = [];
+      this._esFilterFieldMap = [];
+      this._esAggFieldMap = [];
       for (var k in fields) {
         if (fields.hasOwnProperty(k)) {
           this._esFieldMap[k] = fields[k].hasOwnProperty('esName') ? fields[k].esName : k;
+          this._esFilterFieldMap[k] = fields[k].hasOwnProperty('esFilterSubField') ? this._esFieldMap[k] + '.' + fields[k].esFilterSubField : this._esFieldMap[k];
+          this._esAggFieldMap[k] = fields[k].hasOwnProperty('esAggSubField') ? this._esFieldMap[k] + '.' + fields[k].esAggSubField : this._esFieldMap[k];
         }
       }
 
@@ -62,24 +68,35 @@
         // Transform kendo filters into a ES query using a query_string request
         if (data.filter) {
           esParams.query = {
-            query_string: {
-              query: self._kendoFilterToESParam(data.filter),
-              lowercase_expanded_terms: true,
-              default_operator: 'AND'
+            filtered: {
+              filter: {
+                query: {
+                  query_string: {
+                    query: self._kendoFilterToESParam(data.filter),
+                    lowercase_expanded_terms: true,
+                    default_operator: 'AND'
+                  }
+                }
+              }
             }
           };
         }
 
         // Fetch only the required list of fields from ES
-        esParams.fields = Object.keys(self._esFieldMap).map(function(k){
+        esParams.fields = Object.keys(self._esFieldMap).map(function(k) {
           return self._esFieldMap[k];
         });
         esParams._source = false;
+
+        // Transform kendo aggregations into ES aggregations
+        esParams.aggs = self._kendoAggregationToES(data.aggregate);
 
         return JSON.stringify(esParams);
       };
 
       var schema = initOptions.schema;
+
+      // Parse the results from elasticsearch to return data items, total and aggregates for Kendo grid
       schema.parse = function(response) {
         var hits = response.hits.hits;
         var dataItems = [];
@@ -94,19 +111,40 @@
 
           dataItems.push(dataItem);
         }
+
+        var aggregates = {};
+        if (response.aggregations) {
+          Object.keys(response.aggregations).forEach(function(aggKey) {
+            ['count', 'min', 'max', 'average', 'sum'].forEach(function(aggType) {
+              var suffixLength = aggType.length + 1;
+              if (aggKey.substr(aggKey.length - suffixLength) === '_' + aggType) {
+                var fieldKey = aggKey.substr(0, aggKey.length - suffixLength);
+                aggregates[fieldKey] = aggregates[fieldKey] || {};
+                aggregates[fieldKey][aggType] = response.aggregations[aggKey].value;
+              }
+            });
+          });
+        }
+
         return {
           total: response.hits.total,
-          data: dataItems
+          data: dataItems,
+          aggregates: aggregates
         };
+      };
+
+      schema.aggregates = function(response) {
+        return response.aggregates;
       };
 
       schema.data = schema.data || 'data';
       schema.total = schema.total || 'total';
       schema.model.id = schema.model.id || '_id';
 
-      initOptions.serverFiltering = initOptions.serverFiltering || true;
-      initOptions.serverSorting = initOptions.serverSorting || true;
-      initOptions.serverPaging = initOptions.serverPaging || true;
+      initOptions.serverFiltering = true;
+      initOptions.serverSorting = true;
+      initOptions.serverPaging = true;
+      initOptions.serverAggregates = true;
 
       data.DataSource.fn.init.call(this, initOptions);
     },
@@ -129,16 +167,8 @@
     },
 
     _kendoOperatorFilterToESParam: function(kendoFilterObj) {
-      // The key of the field for filtering can be either the field key or a mapped field key for elasticsearch
-      // Also it can be concatenated with the name of a subfield, if filters should be applied to one
-      // Typical use case is the main field is analyzed, but it has a subfield that is not (or only with 'simple' analyzer)
-      // for kendo filter that are basically regexp filters
-      var fieldModel = this.options.schema.model.fields[kendoFilterObj.field] || {};
-      var field = fieldModel.esName || kendoFilterObj.field;
       // Add the subfield suffix except for contains that should use classical search instead of regexp
-      if (fieldModel.esFilterSubField && kendoFilterObj.operator !== 'contains') {
-        field = field + '.' + fieldModel.esFilterSubField;
-      }
+      var field = kendoFilterObj.operator === 'contains' ? this._esFieldMap[kendoFilterObj.field] : this._esFilterFieldMap[kendoFilterObj.field];
 
       var fieldEscaped = this._asESParameter(field);
       var valueEscaped = this._asESParameter(kendoFilterObj.value);
@@ -185,7 +215,35 @@
         value = value.toISOString();
 
       return value.replace("\\", "\\\\").replace(/[+\-&|!()\{}\[\]^:"~*?:\/ ]/g, "\\$&");
+    },
+
+    _kendoAggregationToES: function(aggregate) {
+      var self = this;
+      var esAggs = {};
+
+      var kendoToESAgg = {
+        count: 'cardinality',
+        min: 'min',
+        max: 'max',
+        sum: 'sum',
+        average: 'avg'
+      };
+
+      if (aggregate && aggregate.length > 0) {
+        esAggs = {};
+
+        aggregate.forEach(function(aggItem) {
+          var field = self._esAggFieldMap[aggItem.field];
+
+          esAggs[aggItem.field + '_' + aggItem.aggregate] = {};
+          esAggs[aggItem.field + '_' + aggItem.aggregate][kendoToESAgg[aggItem.aggregate]] = {
+            field: field
+          };
+        });
+      }
+
+      return esAggs;
     }
-  })
+  });
 
 })(window.jQuery, window.kendo);

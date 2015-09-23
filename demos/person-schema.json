@@ -29,6 +29,11 @@
         "type": "string",
         "faker": "internet.email"
       }
+    },
+    "siblings": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10
     }
   }
 }
