@@ -50,7 +50,7 @@
       }
 
       initOptions.transport.parameterMap = function(data, type) {
-        var sortParams = arrayify(data.sort);
+        var sortParams = arrayify((data.group || []).concat(data.sort));
 
         var esParams = {};
         if (data.skip) esParams.from = data.skip;
@@ -59,8 +59,8 @@
         // Transform kendo sort params in a ES sort list
         esParams.sort = sortParams.map(function(sortItem) {
           var esSortItem = {};
-          esSortItem[self._esFieldMap[sortParams[0].field]] = {
-            order: sortParams[0].dir
+          esSortItem[self._esFilterFieldMap[sortItem.field]] = {
+            order: sortItem.dir
           }
           return esSortItem;
         });
@@ -91,6 +91,9 @@
         // Transform kendo aggregations into ES aggregations
         esParams.aggs = self._kendoAggregationToES(data.aggregate);
 
+        // Transform Kendo group instruction into an ES bucket aggregation
+        self._kendoGroupToES(esParams.aggs, data.group);
+
         return JSON.stringify(esParams);
       };
 
@@ -113,6 +116,7 @@
         }
 
         var aggregates = {};
+        var groups = [];
         if (response.aggregations) {
           Object.keys(response.aggregations).forEach(function(aggKey) {
             ['count', 'min', 'max', 'average', 'sum'].forEach(function(aggType) {
@@ -124,17 +128,69 @@
               }
             });
           });
+
+          Object.keys(response.aggregations).forEach(function(aggKey) {
+            var suffixLength = 'group'.length + 1;
+            if (aggKey.substr(aggKey.length - suffixLength) === '_group') {
+              var fieldKey = aggKey.substr(0, aggKey.length - suffixLength);
+              var groupsMap = {};
+
+              // Each bucket in ES aggregation result is a group
+              response.aggregations[aggKey].buckets.forEach(function(bucket) {
+                groupsMap[bucket.key] = {
+                  field: fieldKey,
+                  value: bucket.key,
+                  hasSubGroups: false,
+                  aggregates: {},
+                  items: []
+                };
+                groupsMap[bucket.key].aggregates[fieldKey] = {
+                  count: bucket.doc_count
+                };
+
+              });
+
+              // Special case for the missing value
+              groupsMap[''] = {
+                field: fieldKey,
+                value: '',
+                hasSubGroups: false,
+                aggregates: {},
+                items: []
+              };
+              groupsMap[''].aggregates[fieldKey] = {
+                count: response.aggregations[fieldKey + '_missing'].doc_count
+              };
+
+              dataItems.forEach(function(dataItem) {
+                var group = groupsMap[dataItem[fieldKey]];
+                if (!group) {
+                  throw new Error('Error while groupin, data value ' + dataItem[fieldKey] + ' for field ' + fieldKey + ' does not match a group');
+                }
+                group.items.push(dataItem);
+                if (group.items.length === 1) {
+                  groups.push(group);
+                }
+              });
+
+            }
+          });
         }
 
         return {
           total: response.hits.total,
           data: dataItems,
-          aggregates: aggregates
+          aggregates: aggregates,
+          groups: groups
         };
       };
 
       schema.aggregates = function(response) {
         return response.aggregates;
+      };
+
+      schema.groups = function(response) {
+        return response.groups;
       };
 
       schema.data = schema.data || 'data';
@@ -145,6 +201,7 @@
       initOptions.serverSorting = true;
       initOptions.serverPaging = true;
       initOptions.serverAggregates = true;
+      initOptions.serverGrouping = true;
 
       data.DataSource.fn.init.call(this, initOptions);
     },
@@ -207,7 +264,7 @@
         esParams.push(" (" + this._kendoFilterToESParam(filters[i]) + ") ");
       }
 
-      return esParams.join(logicalConnective.toUpperCase())
+      return esParams.join(logicalConnective.toUpperCase());
     },
 
     _asESParameter: function(value) {
@@ -243,6 +300,24 @@
       }
 
       return esAggs;
+    },
+
+    _kendoGroupToES: function(aggs, groups) {
+      var self = this;
+
+      if (groups && groups.length > 0) {
+        aggs[groups[0].field + '_group'] = {
+          terms: {
+            field: self._esAggFieldMap[groups[0].field],
+            size: 0
+          }
+        };
+        aggs[groups[0].field + '_missing'] = {
+          missing: {
+            field: self._esAggFieldMap[groups[0].field]
+          }
+        };
+      }
     }
   });
 

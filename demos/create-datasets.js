@@ -10,14 +10,13 @@ var client = new elasticsearch.Client({
 });
 var index = 'kendo-elasticsearch-demo';
 
-var nbPersons = 100;
+var nbPersons = 1000;
 var bulkPersons = '';
 for (var i = 0; i < nbPersons; i++) {
   bulkPersons += JSON.stringify({
     index: {
       _index: 'kendo-elasticsearch-demo',
-      _type: 'person',
-      _id: '' + i
+      _type: 'person'
     }
   });
   bulkPersons += '\n';
@@ -25,6 +24,7 @@ for (var i = 0; i < nbPersons; i++) {
   bulkPersons += '\n';
 }
 
+console.log('Prepared bulk query with %s random persons', nbPersons);
 //console.log(bulkPersons);
 
 // Create index then use bulk to index a bunch of documents
@@ -47,7 +47,6 @@ client.indices.exists({
     body: bulkPersons
   });
 }).then(function(response) {
-  console.log(response);
   console.log('Created %s persons.', nbPersons);
   process.exit();
 }, function(err) {

@@ -92,7 +92,12 @@
           }, {
             field: "siblings",
             aggregate: "average"
-          }]
+          }],
+
+          group: {
+            field: "city",
+            dir: "asc"
+          }
         }),
 
         // other grid options besides the datasource
@@ -108,7 +113,7 @@
           field: 'lastName'
         }, {
           field: 'city',
-          groupHeaderTemplate: "City: #=value#",
+          groupHeaderTemplate: "City: #=value#, Count: #=count#",
           footerTemplate: "Cardinality: #=count#"
         }, {
           field: 'emails'
