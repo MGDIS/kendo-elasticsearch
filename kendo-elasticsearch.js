@@ -115,67 +115,8 @@
           dataItems.push(dataItem);
         }
 
-        var aggregates = {};
-        var groups = [];
-        if (response.aggregations) {
-          Object.keys(response.aggregations).forEach(function(aggKey) {
-            ['count', 'min', 'max', 'average', 'sum'].forEach(function(aggType) {
-              var suffixLength = aggType.length + 1;
-              if (aggKey.substr(aggKey.length - suffixLength) === '_' + aggType) {
-                var fieldKey = aggKey.substr(0, aggKey.length - suffixLength);
-                aggregates[fieldKey] = aggregates[fieldKey] || {};
-                aggregates[fieldKey][aggType] = response.aggregations[aggKey].value;
-              }
-            });
-          });
-
-          Object.keys(response.aggregations).forEach(function(aggKey) {
-            var suffixLength = 'group'.length + 1;
-            if (aggKey.substr(aggKey.length - suffixLength) === '_group') {
-              var fieldKey = aggKey.substr(0, aggKey.length - suffixLength);
-              var groupsMap = {};
-
-              // Each bucket in ES aggregation result is a group
-              response.aggregations[aggKey].buckets.forEach(function(bucket) {
-                groupsMap[bucket.key] = {
-                  field: fieldKey,
-                  value: bucket.key,
-                  hasSubGroups: false,
-                  aggregates: {},
-                  items: []
-                };
-                groupsMap[bucket.key].aggregates[fieldKey] = {
-                  count: bucket.doc_count
-                };
-
-              });
-
-              // Special case for the missing value
-              groupsMap[''] = {
-                field: fieldKey,
-                value: '',
-                hasSubGroups: false,
-                aggregates: {},
-                items: []
-              };
-              groupsMap[''].aggregates[fieldKey] = {
-                count: response.aggregations[fieldKey + '_missing'].doc_count
-              };
-
-              dataItems.forEach(function(dataItem) {
-                var group = groupsMap[dataItem[fieldKey]];
-                if (!group) {
-                  throw new Error('Error while groupin, data value ' + dataItem[fieldKey] + ' for field ' + fieldKey + ' does not match a group');
-                }
-                group.items.push(dataItem);
-                if (group.items.length === 1) {
-                  groups.push(group);
-                }
-              });
-
-            }
-          });
-        }
+        var aggregates = self._esAggToKendoAggregates(response.aggregations);
+        var groups = self._esAggToKendoGroups(dataItems, response.aggregations);
 
         return {
           total: response.hits.total,
@@ -317,7 +258,81 @@
             field: self._esAggFieldMap[groups[0].field]
           }
         };
+
+        if (groups[0].aggregates) {
+          aggs[groups[0].field + '_group'].aggregations = self._kendoAggregationToES(groups[0].aggregates);
+          aggs[groups[0].field + '_missing'].aggregations = self._kendoAggregationToES(groups[0].aggregates);
+        }
       }
+    },
+
+    // Transform aggregation results from a ES query to kendo aggregates
+    _esAggToKendoAggregates: function(aggregations) {
+      var aggregates = {};
+      Object.keys(aggregations || {}).forEach(function(aggKey) {
+        ['count', 'min', 'max', 'average', 'sum'].forEach(function(aggType) {
+          var suffixLength = aggType.length + 1;
+          if (aggKey.substr(aggKey.length - suffixLength) === '_' + aggType) {
+            var fieldKey = aggKey.substr(0, aggKey.length - suffixLength);
+            aggregates[fieldKey] = aggregates[fieldKey] || {};
+            aggregates[fieldKey][aggType] = aggregations[aggKey].value;
+          }
+        });
+      });
+      return aggregates;
+    },
+
+    _esAggToKendoGroups: function(dataItems, aggregations) {
+      var self = this;
+      var groups = [];
+      if (aggregations) {
+        Object.keys(aggregations).forEach(function(aggKey) {
+          var suffixLength = 'group'.length + 1;
+          if (aggKey.substr(aggKey.length - suffixLength) === '_group') {
+            var fieldKey = aggKey.substr(0, aggKey.length - suffixLength);
+            var groupsMap = {};
+
+            // Each bucket in ES aggregation result is a group
+            aggregations[aggKey].buckets.forEach(function(bucket) {
+              groupsMap[bucket.key] = {
+                field: fieldKey,
+                value: bucket.key,
+                hasSubGroups: false,
+                aggregates: self._esAggToKendoAggregates(bucket),
+                items: []
+              };
+              groupsMap[bucket.key].aggregates[fieldKey] = {
+                count: bucket.doc_count
+              };
+            });
+
+            // Special case for the missing value
+            groupsMap[''] = {
+              field: fieldKey,
+              value: '',
+              hasSubGroups: false,
+              aggregates: self._esAggToKendoAggregates(aggregations[fieldKey + '_missing']),
+              items: []
+            };
+            groupsMap[''].aggregates[fieldKey] = {
+              count: aggregations[fieldKey + '_missing'].doc_count
+            };
+
+            dataItems.forEach(function(dataItem) {
+              var group = groupsMap[dataItem[fieldKey]];
+              if (!group) {
+                throw new Error('Error while grouping, data value ' + dataItem[fieldKey] + ' for field ' + fieldKey + ' does not match a group');
+              }
+              group.items.push(dataItem);
+              if (group.items.length === 1) {
+                groups.push(group);
+              }
+            });
+          }
+        });
+      }
+
+      return groups;
     }
   });
 

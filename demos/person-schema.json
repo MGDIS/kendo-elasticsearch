@@ -1,13 +1,15 @@
 {
   "type": "object",
-  "required": ["firstName", "lastName"],
+  "required": ["birthDate", "name", "siblings"],
   "properties": {
     "birthDate": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "chance": "birthday"
     },
     "name": {
       "type": "object",
+      "required": ["firstName", "lastName"],
       "properties": {
         "firstName": {
           "type": "string",

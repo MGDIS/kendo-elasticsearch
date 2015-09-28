@@ -1,0 +1,39 @@
+{
+  "type": "object",
+  "required": ["name", "addresses"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "faker": "company.companyName"
+    },
+    "addresses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["country", "city", "zipCode", "streetName"],
+        "properties": {
+          "zipCode": {
+            "type": "string",
+            "faker": "address.zipCode"
+          },
+          "country": {
+            "type": "string",
+            "faker": "address.country"
+          },
+          "city": {
+            "type": "string",
+            "faker": "address.city"
+          },
+          "streetName": {
+            "type": "string",
+            "faker": "address.streetName"
+          },
+          "streetPrefix": {
+            "type": "string",
+            "faker": "address.streetPrefix"
+          }
+        }
+      }
+    }
+  }
+}

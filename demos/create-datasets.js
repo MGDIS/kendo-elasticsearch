@@ -3,20 +3,44 @@
 var jsf = require('json-schema-faker');
 var elasticsearch = require('elasticsearch');
 var personSchema = require('./person-schema');
+var organizationSchema = require('./organization-schema');
 var indexDefinition = require('./index-definition');
+
+// These variables are parameters for the following
 
 var client = new elasticsearch.Client({
   host: 'http://localhost:9200'
 });
 var index = 'kendo-elasticsearch-demo';
-
+var nbOrganizations = 100;
 var nbPersons = 1000;
+
+// Let's prepare some bodies fof Elasticsearch bulk requests
+
+var bulkOrganizations = '';
+for (var i = 0; i < nbOrganizations; i++) {
+  bulkOrganizations += JSON.stringify({
+    index: {
+      _index: 'kendo-elasticsearch-demo',
+      _type: 'organization',
+      _id: i
+    }
+  });
+  bulkOrganizations += '\n';
+  bulkOrganizations += JSON.stringify(jsf(organizationSchema));
+  bulkOrganizations += '\n';
+}
+
+console.log('Prepared bulk query with %s random organizations', nbOrganizations);
+
 var bulkPersons = '';
 for (var i = 0; i < nbPersons; i++) {
   bulkPersons += JSON.stringify({
     index: {
       _index: 'kendo-elasticsearch-demo',
-      _type: 'person'
+      _type: 'person',
+      _id: i,
+      parent: Math.floor(Math.random() * nbOrganizations)
     }
   });
   bulkPersons += '\n';
@@ -25,7 +49,6 @@ for (var i = 0; i < nbPersons; i++) {
 }
 
 console.log('Prepared bulk query with %s random persons', nbPersons);
-//console.log(bulkPersons);
 
 // Create index then use bulk to index a bunch of documents
 client.indices.exists({
@@ -44,12 +67,17 @@ client.indices.exists({
 }).then(function() {
   return client.bulk({
     index: index,
+    body: bulkOrganizations
+  });
+}).then(function() {
+  return client.bulk({
+    index: index,
     body: bulkPersons
   });
 }).then(function(response) {
-  console.log('Created %s persons.', nbPersons);
+  console.log('Created %s organizations and %s persons.', nbOrganizations, nbPersons);
   process.exit();
 }, function(err) {
-  console.error('Failed to create persons - %s', err);
+  console.error('Failed to create datasets', err);
   process.exit(-1);
 });

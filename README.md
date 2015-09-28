@@ -1,86 +1,37 @@
-## kendo-elasticsearch
+# kendo-elasticsearch
 
 A Kendo DataSource extension so you can load data into your [Kendo UI Grid](http://docs.telerik.com/kendo-ui/api/javascript/ui/grid) from an [ElasticSearch](https://www.elasticsearch.org/) index.
 
-It supports filtering, searching and sorting in ElasticSearch for date and string fields. Other scenarios are not deliberately supported and have not been tested.
+It supports filtering, searching, sorting, grouping and aggregating in ElasticSearch for date, number and string fields.
 
-### Usage
+## Demos
 
-Here is an example HTML file defining a Kendo grid talking to ElasticSearch:
+To run the demos on your computer you will need a local instance of ElasticSearch, a clone of this repository and [nodejs](https://nodejs.org) and [bower](http://bower.io/).
 
-```
-<!DOCTYPE html>
-<html>
-  <head>
-	<title>ElasticSearch Kendo DataSource example</title>
-	<link href="kendo.common.min.css" rel="stylesheet">
+The dataset is constituted of 2 simple mappings: "organization" and "person". The documents are generated randomly using [json-schema-faker](https://github.com/json-schema-faker/json-schema-faker).
+The persons have an organization as [parent](https://www.elastic.co/guide/en/elasticsearch/guide/current/parent-child.html).
+Each textual field is indexed using the standard analyzer and has additional subfields more suitable for regexp filtering and aggregations on exact values.
+Have a look at the [index definition](./demos/index-definition.json) to see how this is done.
 
-	<!-- Include dependencies -->
-	<script src="moment.min.js"></script>
-	<script src="jquery.min.js"></script>
-	<script src="kendo.web.min.js"></script>
+Clone the project and create the datasets:
 
-	<!-- Include kendo-elasticsearch itself -->
-	<script src="kendo-elasticsearch.js"></script>
-  
-  </head>
-  <body>
-	<div id="example">
-	  <div id="grid"></div>
+    git clone https://github.com/MGDIS/kendo-elasticsearch.git
+    cd kendo-elasticsearch
+    npm install
+    node demos/create-datasets.js
 
-	  <script>
-		$(document).ready(function () {
-		  $('#grid').kendoGrid({
+Afterwards you just have to open the HTML files in your browser.
 
-			// so here go configuration options for the Kendo UI Grid
+### Basic
 
-			// configure the datasource to be an ElasticSearchDataSource
-			dataSource: new kendo.data.ElasticSearchDataSource({
+This example queries the "person" mapping. It has paging, sorting and filtering.
+Filtering of text fields is based on a "lowercase" subfield, except for "contains" which behaves as a classical keywords search.
 
-			  // point it to the URL where ElasticSearch search requests can go
-			  transport: {
-				read: {
-				  url: "http://localhost:9200/_all/_search/"
-				}
-			  },
+See [the source code](./demos/basic.html).
 
-			  pageSize: 20,
+### Aggregate
 
-			  // specify the fields to bind
-			  schema: {
-				model: {
-				  fields: {
-					message: { type: "string" },
+This example illustrates using server side aggregations to work on a number field and the cardinality of a text field.
+Aggregations are dependent on the filters, but not on the pagination.
 
-					// you can specify a different ElasticSearch name for the field,
-					// to deal with ElasticSearch field names that Kendo can't handle
-					timestamp: { type: "date", esName: "@timestamp" }
-				  }
-				}
-			  },
-
-			  // server-side paging, filtering and sorting are enabled by default.
-			  // Set filters as you like
-			  sort: { field: "timestamp", dir: "desc" },
-			  filter: { field: "message", operator: "eq", value: "accepted" }
-			}),
-
-			// other grid options besides the datasource
-			sortable: true,
-			pageable: true,
-			filterable: true,
-			columns: [
-			  { field: "timestamp" },
-			  { field: "message" }
-			]
-		  });
-		});
-	  </script>
-	</div>
-  </body>
-</html>
-```
-
-### Dependencies
-
-Requires kendo-ui and also [Moment.js](http://momentjs.com/).
+See [the source code](./demos/aggregate.html).

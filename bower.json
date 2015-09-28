@@ -19,9 +19,6 @@
     "test",
     "tests"
   ],
-  "dependencies": {
-    "moment": "2.9.*"
-  },
   "devDependencies": {
     "kendo-ui": "2014.1.318",
     "jquery-mockjax": "~2.0.1"
