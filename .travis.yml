@@ -2,8 +2,14 @@ branches:
   only:
     - "master"
 
+language: node_js
+node_js:
+  - "0.12"
+
 install:
   - "npm install"
+  - "npm install -g bower"
+  - "bower install"
 
 script:
   - "npm test"
