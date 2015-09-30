@@ -50,6 +50,8 @@
         }
       }
 
+      // Prepare the content of the query that will be sent to ES
+      // based on the kendo data structure
       initOptions.transport.parameterMap = function(data) {
         var sortParams = arrayify(data.sort || data.group);
 
@@ -95,20 +97,7 @@
       // Parse the results from elasticsearch to return data items,
       // total and aggregates for Kendo grid
       schema.parse = function(response) {
-        var hits = response.hits.hits;
-        var dataItems = [];
-        for (var i = 0; i < hits.length; i++) {
-          var hitFields = hits[i].fields || {};
-          var dataItem = {};
-
-          dataItem.id = hits[i]._id;
-          for (var k in self._fields) {
-            dataItem[k] = (hitFields[self._fields[k].esName] || []).join("\n");
-          }
-
-          dataItems.push(dataItem);
-        }
-
+        var dataItems = esHitsToDataItems(response.hits.hits, _fields);
         var aggregates = esAggToKendoAgg(response.aggregations);
         var groups = esAggToKendoGroups(dataItems, response.aggregations);
 
@@ -299,6 +288,28 @@
     return groups;
   }
 
+  function esHitsToDataItems(hits, fields) {
+    var dataItems = [];
+    for (var i = 0; i < hits.length; i++) {
+      var hitFields = hits[i].fields || {};
+      var dataItem = {};
+
+      dataItem.id = [hits[i]._id];
+      for (var k in fields) {
+        if (fields[k].esMultiSplit) {
+          dataItem[k] = hitFields[fields[k].esName] || [];
+        } else {
+          dataItem[k] = [(hitFields[fields[k].esName] || [])
+            .join(fields[k].esMultiSeparator || ";")
+          ];
+        }
+      }
+
+      dataItems.push(dataItem);
+    }
+    return splitMultiValues(dataItems);
+  }
+
   function kendoAggregationToES(aggregate, fields) {
     var esAggs = {};
 
@@ -345,6 +356,39 @@
         missingAgg.aggregations = kendoAggregationToES(groups[0].aggregates, fields);
       }
     }
+  }
+
+  function splitMultiValues(items) {
+    var results = [];
+
+    // Iterates on items in the array and multiply based on multiple values
+    items.forEach(function(item) {
+      var itemResults = [{}];
+
+      // Iterate on properties of item
+      Object.keys(item).forEach(function(k) {
+
+        var partialItemResults = [];
+
+        // Iterate on the multiple values of this property
+        item[k].forEach(function(val) {
+          itemResults.forEach(function(result) {
+
+            // Clone the result to create variants with the different values of current key
+            var newResult = {};
+            Object.keys(result).forEach(function(k2) {
+              newResult[k2] = result[k2];
+            });
+            newResult[k] = val;
+            partialItemResults.push(newResult);
+          });
+        });
+        itemResults = partialItemResults;
+      });
+
+      results = results.concat(itemResults);
+    });
+    return results;
   }
 
   // Escape values so that they are suitable as an elasticsearch query_string query parameter

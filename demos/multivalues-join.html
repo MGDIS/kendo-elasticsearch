@@ -3,7 +3,7 @@
 
 <head>
   <meta charset='utf-8'>
-  <title>Kendo Elasticsearch - demos - Groups</title>
+  <title>Kendo Elasticsearch - demos - Joined multi values</title>
 
   <!--<link rel='stylesheet' href='http://kendo.cdn.telerik.com/2014.1.318/styles/kendo.common.min.css'>-->
   <link rel='stylesheet' href='../bower_components/kendo-ui/styles/kendo.common.min.css'>
@@ -12,7 +12,7 @@
 </head>
 
 <body>
-  <h1>Kendo Elasticsearch - demos - Groups</h1>
+  <h1>Kendo Elasticsearch - demos - Joined multi values</h1>
 
   <div id='grid'></div>
 
@@ -40,11 +40,6 @@
           schema: {
             model: {
               fields: {
-                birthCountry: {
-                  type: 'string',
-                  esFilterSubField: 'lowercase',
-                  esAggSubField: 'raw'
-                },
                 firstName: {
                   type: 'string',
                   esFilterSubField: 'lowercase',
@@ -55,25 +50,14 @@
                   esFilterSubField: 'lowercase',
                   esName: 'name.lastName'
                 },
-                birthDate: {
-                  type: 'date'
-                },
-                siblings: {
-                  type: 'number'
+                emails: {
+                  type: 'string',
+                  esFilterSubField: 'lowercase',
+                  esMultiSeparator: '<br/>'
                 }
               }
             }
           },
-
-          group: {
-            field: "birthCountry",
-            dir: "asc",
-            aggregates: [{
-              field: 'siblings',
-              aggregate: 'max'
-            }]
-          }
-
         }),
 
         // other grid options besides the datasource
@@ -81,22 +65,16 @@
         pageable: true,
         filterable: true,
         columns: [{
-          field: 'birthCountry',
-          groupHeaderTemplate: "Birth country: #=value#, Count: #=count#",
-          title: "Birth country"
-        }, {
-          field: 'birthDate',
-          format:'{0:D}',
-          title: 'Date of birth'
-        }, {
           field: 'firstName',
           title: 'First name'
         }, {
           field: 'lastName',
           title: 'Last name'
         }, {
-          field: 'siblings',
-          groupFooterTemplate: "Max: #=max#"
+          field: 'emails',
+          title: 'Emails',
+          // This is required for HTML formatting to be accepted
+          encoded: false
         }]
       });
     });

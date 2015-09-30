@@ -22,7 +22,7 @@ Clone the project and create the datasets:
     npm install
     node demos/create-datasets.js
 
-Afterwards you just have to open the HTML files in your browser.
+Afterwards you just have to open the HTML files from the demos folder in your browser.
 
 ### Basic
 
@@ -45,6 +45,28 @@ It also uses metric aggregations on the buckets.
 
 See [the source code](./demos/groups.html).
 
+### Joined multi values
+
+This example illustrates using a custom separator to join the multiple values of a field inside a single cell.
+
+The separator can use HTML if the 'encoded' attribute of the column is set to 'false'.
+
+See [the source code](./demos/multivalues-join.html).
+
+### Split multi values
+
+This example illustrates splitting the lines of data based on the multiple values of a field.
+
+Please note that the page size and filters can seem to be badly interpreted. This is because the actual lines of data fetched from the server and the lines
+displayed to the user are 2 separate things.
+
+This is probably not a very useful feature for user interactions and visualization, but it can be handy for exporting the dataset.
+
+See [the source code](./demos/multivalues-split.html).
+
 ## TODO:
 
   - Support empty values in sorting (always last ?)
+  - Add a note about kendo grid licence, web and pro packs.
+  - Add notes about kendo/ES functionalities mapping and the relational behind it
+  - Is it possible to add another filter operator ? It would be nice for 'contains' and 'doesnotcontain' to be pattern based and to have a 'search' operator.
