@@ -1,5 +1,7 @@
 # kendo-elasticsearch
 
+[![Build Status](https://travis-ci.org/MGDIS/kendo-elasticsearch.svg)](https://travis-ci.org/MGDIS/kendo-elasticsearch)
+
 A Kendo DataSource extension so you can load data into your [Kendo UI Grid](http://docs.telerik.com/kendo-ui/api/javascript/ui/grid) from an [ElasticSearch](https://www.elasticsearch.org/) index.
 
 It supports filtering, searching, sorting, grouping and aggregating in ElasticSearch for date, number and string fields.
