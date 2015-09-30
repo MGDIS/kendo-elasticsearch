@@ -21,9 +21,9 @@
         }
       }
     },
-    "city": {
+    "birthCountry": {
       "type": "string",
-      "faker": "address.city"
+      "faker": "address.country"
     },
     "emails": {
       "type": "array",

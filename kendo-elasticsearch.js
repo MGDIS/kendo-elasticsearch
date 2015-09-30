@@ -50,7 +50,7 @@
       }
 
       initOptions.transport.parameterMap = function(data, type) {
-        var sortParams = arrayify((data.group || []).concat(data.sort));
+        var sortParams = arrayify(data.sort || data.group);
 
         var esParams = {};
         if (data.skip) esParams.from = data.skip;

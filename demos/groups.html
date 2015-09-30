@@ -3,7 +3,7 @@
 
 <head>
   <meta charset='utf-8'>
-  <title>Kendo Elasticsearch - demos</title>
+  <title>Kendo Elasticsearch - demos - Groups</title>
 
   <!--<link rel='stylesheet' href='http://kendo.cdn.telerik.com/2014.1.318/styles/kendo.common.min.css'>-->
   <link rel='stylesheet' href='../bower_components/kendo-ui/styles/kendo.common.min.css'>
@@ -12,7 +12,7 @@
 </head>
 
 <body>
-  <h1>Kendo Elasticsearch - demos</h1>
+  <h1>Kendo Elasticsearch - demos - Groups</h1>
 
   <div id='grid'></div>
 
@@ -28,8 +28,6 @@
     $(document).ready(function() {
       $('#grid').kendoGrid({
 
-        // so here go configuration options for the Kendo UI Grid
-
         // configure the datasource to be an ElasticSearchDataSource
         dataSource: new kendo.data.ElasticSearchDataSource({
           transport: {
@@ -37,11 +35,16 @@
               url: 'http://localhost:9200/kendo-elasticsearch-demo/person/_search/'
             }
           },
-          pageSize: 4,
+          pageSize: 10,
 
           schema: {
             model: {
               fields: {
+                birthCountry: {
+                  type: 'string',
+                  esFilterSubField: 'lowercase',
+                  esAggSubField: 'raw'
+                },
                 firstName: {
                   type: 'string',
                   esFilterSubField: 'lowercase',
@@ -51,15 +54,6 @@
                   type: 'string',
                   esFilterSubField: 'lowercase',
                   esName: 'name.lastName'
-                },
-                birthCountry: {
-                  type: 'string',
-                  esFilterSubField: 'lowercase',
-                  esAggSubField: 'raw'
-                },
-                emails: {
-                  type: 'string',
-                  esFilterSubField: 'lowercase'
                 },
                 birthDate: {
                   type: 'date'
@@ -71,29 +65,6 @@
             }
           },
 
-          // server-side paging, filtering and sorting are enabled
-          sort: {
-            field: 'birthDate',
-            dir: 'desc'
-          },
-
-          aggregate: [{
-            field: "birthCountry",
-            aggregate: "count"
-          }, {
-            field: "siblings",
-            aggregate: "min"
-          }, {
-            field: "siblings",
-            aggregate: "max"
-          }, {
-            field: "siblings",
-            aggregate: "sum"
-          }, {
-            field: "siblings",
-            aggregate: "average"
-          }],
-
           group: {
             field: "birthCountry",
             dir: "asc",
@@ -102,35 +73,29 @@
               aggregate: 'max'
             }]
           }
+
         }),
 
         // other grid options besides the datasource
-        toolbar: ["excel"],
-        excel: {
-          fileName: "Kendo UI Grid Export.xlsx",
-          //proxyURL: "//demos.telerik.com/kendo-ui/service/export",
-          filterable: true
-        },
         sortable: true,
         pageable: true,
         filterable: true,
-        groupable: true,
         columns: [{
-          field: 'birthDate'
-        }, {
-          field: 'firstName'
-        }, {
-          field: 'lastName'
-        }, {
           field: 'birthCountry',
           groupHeaderTemplate: "birthCountry: #=value#, Count: #=count#",
-          footerTemplate: "Cardinality: #=count#"
         }, {
-          field: 'emails'
+          field: 'birthDate',
+          format:'{0:D}',
+          title: 'Date of birth'
+        }, {
+          field: 'firstName',
+          title: 'First name'
+        }, {
+          field: 'lastName',
+          title: 'Last name'
         }, {
           field: 'siblings',
-          //groupFooterTemplate: "Max: #=max#",
-          footerTemplate: "Min: #=min#, Max: #=max#, Sum: #=sum#, Avg: #=average#"
+          groupFooterTemplate: "Max: #=max#"
         }]
       });
     });

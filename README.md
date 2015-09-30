@@ -35,3 +35,14 @@ This example illustrates using server side aggregations to work on a number fiel
 Aggregations are dependent on the filters, but not on the pagination.
 
 See [the source code](./demos/aggregate.html).
+
+### Groups and group aggregations
+
+This example illustrates using server side bucket aggregations to group lines based on the values of a field.
+It also uses metric aggregations on the buckets.
+
+See [the source code](./demos/groups.html).
+
+## TODO:
+
+  - Support empty values in sorting (always last ?)
