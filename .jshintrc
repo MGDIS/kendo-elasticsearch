@@ -1,4 +1,6 @@
 {
   "undef": true,
-  "unused": true
+  "unused": true,
+  "jquery": true,
+  "browser": true
 }

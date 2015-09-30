@@ -1,1 +1,6 @@
-{}
+{
+  "preset": "jquery",
+  "requireSpacesInsideParentheses": null,
+  "requireSpacesInsideBrackets": null,
+  "requireCapitalizedComments": null
+}
