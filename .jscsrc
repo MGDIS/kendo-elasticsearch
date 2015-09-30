@@ -2,5 +2,6 @@
   "preset": "jquery",
   "requireSpacesInsideParentheses": null,
   "requireSpacesInsideBrackets": null,
+  "requireSpacesInsideArrayBrackets": null,
   "requireCapitalizedComments": null
 }

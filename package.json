@@ -7,7 +7,8 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "karma start"
+    "test": "karma start",
+    "lint": "jscs -v ./kendo-elasticsearch.js; jshint ./kendo-elasticsearch.js"
   },
   "repository": {
     "type": "git",
@@ -21,6 +22,8 @@
   "homepage": "https://github.com/MGDIS/kendo-elasticsearch#readme",
   "devDependencies": {
     "elasticsearch": "^8.2.0",
+    "jscs": "^1.13.1",
+    "jshint": "^2.8.0",
     "json-schema-faker": "^0.2.0",
     "karma": "^0.13.9",
     "karma-chrome-launcher": "^0.2.0",

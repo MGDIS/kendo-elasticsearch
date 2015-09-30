@@ -186,7 +186,8 @@
     };
   }
 
-  // Transform a single kendo filter in a string that can be used to compose a ES query_string query
+  // Transform a single kendo filter in a string
+  // that can be used to compose a ES query_string query
   function kendoFilterToES(kendoFilter, fields) {
 
     // Use the filter field name except for contains
