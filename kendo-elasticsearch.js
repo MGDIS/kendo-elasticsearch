@@ -166,7 +166,7 @@
 
     _kendoOperatorFilterToESParam: function(kendoFilterObj) {
       // Add the subfield suffix except for contains that should use classical search instead of regexp
-      var field = kendoFilterObj.operator === 'contains' ? this._esFieldMap[kendoFilterObj.field] : this._esFilterFieldMap[kendoFilterObj.field];
+      var field = (kendoFilterObj.operator === 'contains' || kendoFilterObj.operator === 'doesnotcontain') ? this._esFieldMap[kendoFilterObj.field] : this._esFilterFieldMap[kendoFilterObj.field];
 
       var fieldEscaped = this._asESParameter(field);
       var valueEscaped = this._asESParameter(kendoFilterObj.value);
@@ -186,6 +186,8 @@
       } else {
         switch (kendoFilterObj.operator) {
           case "neq":
+            return "NOT (" + fieldEscaped + ":" + valueEscaped + ")";
+          case "doesnotcontain":
             return "NOT (" + fieldEscaped + ":" + valueEscaped + ")";
           case "startswith":
             return fieldEscaped + ":" + valueEscaped + "*";
