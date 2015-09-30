@@ -10,7 +10,6 @@
 
   data.ElasticSearchDataSource = data.DataSource.extend({
     init: function(initOptions) {
-      var self = this;
 
       // Prepare the transport to query ES
       // The only required parameter is transport.read.url
