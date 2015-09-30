@@ -15,9 +15,9 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-      'bower_components/jquery/dist/jquery.min.js',
+      'bower_components/jquery/jquery.min.js',
       'bower_components/moment/moment.js',
-      'bower_components/jquery-mockjax/dist/jquery.mockjax.min.js',
+      'bower_components/jquery-mockjax/dist/jquery.mockjax.js',
       'bower_components/kendo-ui/src/js/kendo.core.js',
       'bower_components/kendo-ui/src/js/kendo.data.js',
       'kendo-elasticsearch.js',
