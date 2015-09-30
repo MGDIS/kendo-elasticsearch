@@ -64,9 +64,20 @@ This is probably not a very useful feature for user interactions and visualizati
 
 See [the source code](./demos/multivalues-split.html).
 
+### Dates
+
+This example illustrates working with date fields and grouping items based on a server-side date histogram.
+
+See [the source code](./demos/dates.html).
+
 ## TODO:
 
   - Support empty values in sorting (always last ?)
   - Add a note about kendo grid licence, web and pro packs.
   - Add notes about kendo/ES functionalities mapping and the relational behind it
   - Is it possible to add another filter operator ? It would be nice for 'contains' and 'doesnotcontain' to be pattern based and to have a 'search' operator.
+  - Combine with some external filter or query
+  - Split a date field in its parts (day, month, year)
+  - how to best use nested objects ? Use [detail template](http://demos.telerik.com/kendo-ui/grid/detailtemplate) ? A single formatted cell ? Split lines ?
+  - how to best use children/parent relationships ? Use [hierarchy](http://demos.telerik.com/kendo-ui/grid/hierarchy) ?
+  - Move these todos into actual issues :)

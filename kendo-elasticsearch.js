@@ -243,17 +243,20 @@
         if (aggKey.substr(aggKey.length - suffixLength) === "_group") {
           var fieldKey = aggKey.substr(0, aggKey.length - suffixLength);
           var groupsMap = {};
+          var groupKeys = [];
 
           // Each bucket in ES aggregation result is a group
           aggregations[aggKey].buckets.forEach(function(bucket) {
-            groupsMap[bucket.key] = {
+            var bucketKey = bucket.key_as_string || bucket.key;
+            groupKeys.push(bucketKey);
+            groupsMap[bucketKey] = {
               field: fieldKey,
-              value: bucket.key,
+              value: bucketKey,
               hasSubGroups: false,
               aggregates: esAggToKendoAgg(bucket),
               items: []
             };
-            groupsMap[bucket.key].aggregates[fieldKey] = {
+            groupsMap[bucketKey].aggregates[fieldKey] = {
               count: bucket.doc_count
             };
           });
@@ -272,6 +275,18 @@
 
           dataItems.forEach(function(dataItem) {
             var group = groupsMap[dataItem[fieldKey]];
+
+            // If no exact match, then we may be in some range aggregation ?
+            if (!group) {
+              for (var i = 0; i < groupKeys.length; i++) {
+                if (dataItem[fieldKey] >= groupKeys[i]) {
+                  if (!groupKeys[i + 1] || dataItem[fieldKey] < groupKeys[i + 1]) {
+                    group = groupsMap[groupKeys[i]];
+                  }
+                }
+              }
+            }
+
             if (!group) {
               throw new Error("No group found, val: " + dataItem[fieldKey] + " field: " + fieldKey);
             }
@@ -295,12 +310,11 @@
 
       dataItem.id = [hits[i]._id];
       for (var k in fields) {
+        var values = hitFields[fields[k].esName] || [];
         if (fields[k].esMultiSplit) {
-          dataItem[k] = hitFields[fields[k].esName] || [];
+          dataItem[k] = values;
         } else {
-          dataItem[k] = [(hitFields[fields[k].esName] || [])
-            .join(fields[k].esMultiSeparator || ";")
-          ];
+          dataItem[k] = [values.join(fields[k].esMultiSeparator || ";")];
         }
       }
 
@@ -309,16 +323,17 @@
     return splitMultiValues(dataItems);
   }
 
+  // Transform kendo aggregates into ES metric aggregations
+  var kendoToESAgg = {
+    count: "cardinality",
+    min: "min",
+    max: "max",
+    sum: "sum",
+    average: "avg"
+  };
+
   function kendoAggregationToES(aggregate, fields) {
     var esAggs = {};
-
-    var kendoToESAgg = {
-      count: "cardinality",
-      min: "min",
-      max: "max",
-      sum: "sum",
-      average: "avg"
-    };
 
     if (aggregate && aggregate.length > 0) {
       esAggs = {};
@@ -336,25 +351,60 @@
     return esAggs;
   }
 
+  // Transform kendo groups declaration into ES bucket aggregations
+  // Only 1 level of grouping is supported for now
   function kendoGroupToES(aggs, groups, fields) {
-    if (groups && groups.length > 0) {
-      var groupAgg = aggs[groups[0].field + "_group"] = {
-        terms: {
-          field: fields[groups[0].field].esAggName,
-          size: 0
-        }
-      };
-      var missingAgg = aggs[groups[0].field + "_missing"] = {
-        missing: {
-          field: fields[groups[0].field].esAggName
-        }
-      };
-
-      if (groups[0].aggregates) {
-        groupAgg.aggregations = kendoAggregationToES(groups[0].aggregates, fields);
-        missingAgg.aggregations = kendoAggregationToES(groups[0].aggregates, fields);
-      }
+    if (!groups || groups.length === 0) {
+      return;
     }
+    var group = groups[0];
+    var field = fields[group.field];
+    var groupAgg = aggs[group.field + "_group"] = {};
+
+    // Look for a aggregate defined on group field
+    // Used to customize the bucket aggregation
+    var fieldAggregate;
+    var groupAggregates = [];
+    (group.aggregates || []).forEach(function(aggregate) {
+      if (aggregate.field === group.field) {
+        fieldAggregate = aggregate;
+      } else {
+        groupAggregates.push(aggregate);
+      }
+    });
+
+    if (fieldAggregate) {
+
+      // We support date histogramms if a 'interval' key is passed
+      // to the group definition
+      groupAgg[fieldAggregate.aggregate] = {
+        field: field.esAggName
+      };
+      if (fieldAggregate.interval) {
+        groupAgg[fieldAggregate.aggregate].interval = fieldAggregate.interval;
+      }
+    } else {
+
+      // Default is a term bucket aggregation
+      // if used on a not analyzed field or subfield
+      // it will create a group for each value of the field
+      groupAgg.terms = {
+        field: field.esAggName,
+        size: 0
+      };
+    }
+
+    var missingAgg = aggs[group.field + "_missing"] = {
+      missing: {
+        field: field.esAggName
+      }
+    };
+
+    if (groups[0].aggregates) {
+      groupAgg.aggregations = kendoAggregationToES(groupAggregates, fields);
+      missingAgg.aggregations = kendoAggregationToES(groupAggregates, fields);
+    }
+
   }
 
   function splitMultiValues(items) {
