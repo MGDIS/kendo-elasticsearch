@@ -43,6 +43,9 @@ See [the source code](./demos/aggregate.html).
 This example illustrates using server side bucket aggregations to group lines based on the values of a field.
 It also uses metric aggregations on the buckets.
 
+Please note that it is better to use this functionality on fields with a moderate cardinality.
+This is because all buckets will be requested, not only the ones needed to display the current page.
+
 See [the source code](./demos/groups.html).
 
 ### Joined multi values
@@ -70,10 +73,31 @@ This example illustrates working with date fields and grouping items based on a 
 
 See [the source code](./demos/dates.html).
 
+### Nested
+
+This example illustrates displaying information from an array of nested objects, in this case addresses in the organization mapping.
+The lines of data are duplicated much like in the "Split multi values" demo, so the page size is not visually respected.
+But the [inner hits](https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-inner-hits.html) functionality
+of ElasticSearch is used so that filtering works well.
+
+See [the source code](./demos/nested.html).
+
+### Parent
+
+This example illustrates displaying information from a parent document.
+
+Please note that on ElasticSearch pre 2.0 the inner hits functionality has a bug that prevents us from using a search URL that includes the type.
+See the [related issue](https://github.com/elastic/elasticsearch/issues/13898).
+
+Also sorting on the parent [is not possible yet](https://github.com/elastic/elasticsearch/issues/2917), [nor aggregating](https://www.elastic.co/guide/en/elasticsearch/guide/current/children-agg.html).
+
+See [the source code](./demos/parent.html).
+
 ## TODO:
 
   - Support empty values in sorting (always last ?)
   - Add a note about kendo grid licence, web and pro packs.
+  - Add a note about ElasticSearch versions compatibility.
   - Add notes about kendo/ES functionalities mapping and the relational behind it
   - Is it possible to add another filter operator ? It would be nice for 'contains' and 'doesnotcontain' to be pattern based and to have a 'search' operator.
   - Combine with some external filter or query

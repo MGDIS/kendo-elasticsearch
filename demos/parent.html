@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset='utf-8'>
+  <title>Kendo Elasticsearch - demos - Parent</title>
+
+  <!--<link rel='stylesheet' href='http://kendo.cdn.telerik.com/2014.1.318/styles/kendo.common.min.css'>-->
+  <link rel='stylesheet' href='../bower_components/kendo-ui/styles/kendo.common.min.css'>
+  <!--<link rel='stylesheet' href='http://kendo.cdn.telerik.com/2014.1.318/styles/kendo.default.min.css'>-->
+  <link rel='stylesheet' href='../bower_components/kendo-ui/styles/kendo.default.min.css'>
+</head>
+
+<body>
+  <h1>Kendo Elasticsearch - demos - Parent</h1>
+
+  <div id='grid'></div>
+
+  <!--<script src='https://code.jquery.com/jquery-2.1.4.min.js'></script>-->
+  <script src='../bower_components/jquery/jquery.min.js'></script>
+  <!--<script src='http://kendo.cdn.telerik.com/2014.1.318/js/kendo.web.min.js'></script>-->
+  <script src='../bower_components/kendo-ui/src/js/kendo.web.js'></script>
+  <!--<script src='https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js'></script>-->
+  <script src='../bower_components/moment/min/moment.min.js'></script>
+  <script src='../kendo-elasticsearch.js'></script>
+
+  <script>
+    $(document).ready(function() {
+      $('#grid').kendoGrid({
+
+        // configure the datasource to be an ElasticSearchDataSource
+        dataSource: new kendo.data.ElasticSearchDataSource({
+          transport: {
+            read: {
+              // DO NOT include the type in this URL. Or the inner hits will bug.
+              // see https://github.com/elastic/elasticsearch/issues/13898
+              url: 'http://localhost:9200/kendo-elasticsearch-demo/_search/'
+            }
+          },
+          pageSize: 10,
+
+          schema: {
+            model: {
+              fields: {
+                firstName: {
+                  type: 'string',
+                  esFilterSubField: 'lowercase',
+                  esName: 'name.firstName'
+                },
+                lastName: {
+                  type: 'string',
+                  esFilterSubField: 'lowercase',
+                  esName: 'name.lastName'
+                },
+                birthDate: {
+                  type: 'date'
+                },
+                companyName: {
+                  type: 'string',
+                  esParentType: 'organization',
+                  esName: 'companyName',
+                  esFilterSubField: 'lowercase',
+                  esAggSubField: 'raw'
+                }
+              }
+            }
+          },
+
+          sort: {
+            field: 'birthDate',
+            dir: 'desc'
+          }
+        }),
+
+        // other grid options besides the datasource
+        sortable: true,
+        pageable: true,
+        filterable: true,
+        columns: [{
+          field: 'birthDate',
+          format:'{0:D}',
+          title: 'Date of birth'
+        }, {
+          field: 'firstName',
+          title: 'First name'
+        }, {
+          field: 'lastName',
+          title: 'Last name'
+        }, {
+          field: 'companyName',
+          title: 'Company name',
+          sortable: false
+        }]
+      });
+    });
+  </script>
+
+</body>
+
+</html>

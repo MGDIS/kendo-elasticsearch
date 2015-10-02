@@ -39,6 +39,9 @@
             if (field.esFilterSubField) {
               field.esFilterName += "." + field.esFilterSubField;
             }
+            if (field.esNestedPath) {
+              field.esFilterName = field.esNestedPath + "."  + field.esFilterName;
+            }
           }
           if (!field.esAggName) {
             field.esAggName = field.esName;
@@ -72,14 +75,16 @@
         });
 
         // Transform kendo filters into a ES query using a query_string request
-        if (data.filter) {
-          esParams.query = kendoFiltersToES(data.filter, _fields);
-        }
+        esParams.query = kendoFiltersToES(data.filter || [], _fields, esParams.sort);
 
         // Fetch only the required list of fields from ES
-        esParams.fields = Object.keys(_fields).map(function(k) {
-          return _fields[k].esName;
-        });
+        esParams.fields = Object.keys(_fields)
+          .filter(function(k) {
+            return !_fields[k].esNestedPath && !_fields[k].esParentType && !_fields[k].esChildType;
+          })
+          .map(function(k) {
+            return _fields[k].esName;
+          });
         esParams._source = false;
 
         // Transform kendo aggregations into ES aggregations
@@ -131,11 +136,12 @@
   });
 
   // Transform a list of Kendo filters into a ES filtered query
-  function kendoFiltersToES(kendoFilters, fields) {
+  function kendoFiltersToES(kendoFilters, fields, sort) {
 
     // there are three possible structures for the kendoFilterObj:
     //  * {value: "...", operator: "...", field: " ..."}
-    //  * {logic: "...", filters: ...}
+    //  * {logic: "...", filters: ...}.
+
     //  * [ ... ]
     var filters;
 
@@ -148,35 +154,118 @@
       logicalConnective = kendoFilters.logic;
       filters = kendoFilters.filters;
     } else if (kendoFilters.constructor == Array) {
-      filters = kendoFilters.filters;
+      filters = kendoFilters;
     } else {
       throw new Error("Unsupported filter object: " + kendoFilters);
     }
 
     var esParams = [];
-    for (var i = 0; i < filters.length; i++) {
-      esParams.push(" (" + kendoFilterToES(filters[i], fields) + ") ");
-    }
+    var nestedESParams = {};
+    var parentESParams = {};
+    var childESParams = {};
+    var nestedFields = {};
+    var parentFields = {};
+    var childFields = {};
+    Object.keys(fields).forEach(function(fieldKey) {
+      var field = fields[fieldKey];
+      if (field.esNestedPath) {
+        nestedESParams[field.esNestedPath] = nestedESParams[field.esNestedPath] || [];
+        nestedFields[field.esNestedPath] = nestedFields[field.esNestedPath] || [];
+        nestedFields[field.esNestedPath].push(field.esName);
+      }
+      if (field.esParentType) {
+        parentESParams[field.esParentType] = parentESParams[field.esParentType] || [];
+        parentFields[field.esParentType] = parentFields[field.esParentType] || [];
+        parentFields[field.esParentType].push(field.esName);
+      }
+      if (field.esChildType) {
+        childESParams[field.esChildType] = childESParams[field.esChildType] || [];
+        childFields[field.esChildType] = childFields[field.esChildType] || [];
+        childFields[field.esChildType].push(field.esName);
+      }
+    });
+    filters.forEach(function(filter) {
+      if (fields[filter.field].esNestedPath) {
+        var nestedPath = fields[filter.field].esNestedPath;
+        nestedESParams[nestedPath]
+          .push(" (" + kendoFilterToESParam(filter, fields) + ") ");
+      } else if (fields[filter.field].esParentType) {
+        var parentType = fields[filter.field].esParentType;
+        parentESParams[parentType]
+          .push(" (" + kendoFilterToESParam(filter, fields) + ") ");
+      } else if (fields[filter.field].esChildType) {
+        var childType = fields[filter.field].esChildType;
+        childESParams[childType]
+          .push(" (" + kendoFilterToESParam(filter, fields) + ") ");
+      } else {
+        esParams.push(" (" + kendoFilterToESParam(filter, fields) + ") ");
+      }
+    });
 
     // jscs:disable requireCamelCaseOrUpperCaseIdentifiers
-    return {
+    var query = {
       filtered: {
-        filter: {
-          query: {
-            query_string: {
-              query: esParams.join(logicalConnective.toUpperCase()),
-              lowercase_expanded_terms: true,
-              default_operator: "AND"
-            }
-          }
-        }
+        filter: {}
       }
     };
+
+    // Create either a 'and' or 'or' filter
+    var queryFilters = query.filtered.filter[logicalConnective] = [];
+
+    // Create a query_string filter for all filters on root document
+    queryFilters.push(combineESParams(esParams, logicalConnective));
+
+    // Create a nested query_string filter for each nested document filter
+    Object.keys(nestedESParams).forEach(function(nestedPath) {
+      queryFilters.push({
+        nested: {
+          path: nestedPath,
+          filter: combineESParams(nestedESParams[nestedPath], logicalConnective),
+          inner_hits: {
+            fields: nestedFields[nestedPath],
+            size: 10000,
+            sort: sort
+          }
+        }
+      });
+    });
+
+    // Create a has_parent query_string filter for each parent filter
+    Object.keys(parentESParams).forEach(function(parentType) {
+      queryFilters.push({
+        has_parent: {
+          type: parentType,
+          filter: combineESParams(parentESParams[parentType], logicalConnective),
+          inner_hits: {
+            fields: parentFields[parentType],
+            size: 10000,
+            sort: sort
+          }
+        }
+      });
+    });
+
+    // Create a has_child query_string filter for each child filter
+    Object.keys(childESParams).forEach(function(childType) {
+      queryFilters.push({
+        has_child: {
+          type: childType,
+          filter: combineESParams(childESParams[childType], logicalConnective),
+          inner_hits: {
+            fields: childFields[childType],
+            size: 10000,
+            sort: sort
+          }
+        }
+      });
+    });
+
+    return query;
   }
 
   // Transform a single kendo filter in a string
   // that can be used to compose a ES query_string query
-  function kendoFilterToES(kendoFilter, fields) {
+  function kendoFilterToESParam(kendoFilter, fields) {
 
     // Use the filter field name except for contains
     // that should use classical search instead of regexp
@@ -217,6 +306,112 @@
       }
     }
   }
+
+  // Combine a list of individual filter parameters into a query_string filter
+  function combineESParams(params, logicalConnective) {
+    var filter;
+    if (params.length > 0) {
+      filter = {
+        query: {
+          query_string: {
+            query: params.join(logicalConnective.toUpperCase()),
+            lowercase_expanded_terms: true,
+            default_operator: "AND"
+          }
+        }
+      };
+    } else {
+      filter = {
+        "match_all": {}
+      };
+    }
+    return filter;
+  }
+
+  var kendoToESAgg = {
+    count: "cardinality",
+    min: "min",
+    max: "max",
+    sum: "sum",
+    average: "avg"
+  };
+
+  // Transform kendo aggregates into ES metric aggregations
+  function kendoAggregationToES(aggregate, fields) {
+    var esAggs = {};
+
+    if (aggregate && aggregate.length > 0) {
+      esAggs = {};
+
+      aggregate.forEach(function(aggItem) {
+        var field = fields[aggItem.field].esAggName;
+
+        esAggs[aggItem.field + "_" + aggItem.aggregate] = {};
+        esAggs[aggItem.field + "_" + aggItem.aggregate][kendoToESAgg[aggItem.aggregate]] = {
+          field: field
+        };
+      });
+    }
+
+    return esAggs;
+  }
+
+  // Transform kendo groups declaration into ES bucket aggregations
+  // Only 1 level of grouping is supported for now
+  function kendoGroupToES(aggs, groups, fields) {
+    if (!groups || groups.length === 0) {
+      return;
+    }
+    var group = groups[0];
+    var field = fields[group.field];
+    var groupAgg = aggs[group.field + "_group"] = {};
+
+    // Look for a aggregate defined on group field
+    // Used to customize the bucket aggregation
+    var fieldAggregate;
+    var groupAggregates = [];
+    (group.aggregates || []).forEach(function(aggregate) {
+      if (aggregate.field === group.field) {
+        fieldAggregate = aggregate;
+      } else {
+        groupAggregates.push(aggregate);
+      }
+    });
+
+    if (fieldAggregate) {
+
+      // We support date histogramms if a 'interval' key is passed
+      // to the group definition
+      groupAgg[fieldAggregate.aggregate] = {
+        field: field.esAggName
+      };
+      if (fieldAggregate.interval) {
+        groupAgg[fieldAggregate.aggregate].interval = fieldAggregate.interval;
+      }
+    } else {
+
+      // Default is a term bucket aggregation
+      // if used on a not analyzed field or subfield
+      // it will create a group for each value of the field
+      groupAgg.terms = {
+        field: field.esAggName,
+        size: 0
+      };
+    }
+
+    var missingAgg = aggs[group.field + "_missing"] = {
+      missing: {
+        field: field.esAggName
+      }
+    };
+
+    if (groups[0].aggregates) {
+      groupAgg.aggregations = kendoAggregationToES(groupAggregates, fields);
+      missingAgg.aggregations = kendoAggregationToES(groupAggregates, fields);
+    }
+
+  }
+
 
   // Transform aggregation results from a ES query to kendo aggregates
   function esAggToKendoAgg(aggregations) {
@@ -304,109 +499,45 @@
 
   function esHitsToDataItems(hits, fields) {
     var dataItems = [];
-    for (var i = 0; i < hits.length; i++) {
-      var hitFields = hits[i].fields || {};
+    hits.forEach(function(hit) {
+      var hitFields = hit.fields || {};
       var dataItem = {};
 
-      dataItem.id = [hits[i]._id];
+      dataItem.id = [hit._id];
       for (var k in fields) {
-        var values = hitFields[fields[k].esName] || [];
-        if (fields[k].esMultiSplit) {
-          dataItem[k] = values;
-        } else {
-          dataItem[k] = [values.join(fields[k].esMultiSeparator || ";")];
+        var values = hitFields[fields[k].esName];
+        if (values) {
+          if (fields[k].esMultiSplit) {
+            dataItem[k] = values;
+          } else {
+            dataItem[k] = values.join(fields[k].esMultiSeparator || ";");
+          }
         }
       }
 
-      dataItems.push(dataItem);
-    }
+      var nestedItems = [];
+      Object.keys(hit.inner_hits || {}).forEach(function(innerHitKey) {
+        nestedItems = nestedItems
+          .concat(esHitsToDataItems(hit.inner_hits[innerHitKey].hits.hits, fields));
+      });
+
+      if (nestedItems.length > 0) {
+        nestedItems.forEach(function(nestedItem) {
+          Object.keys(dataItem).forEach(function(key) {
+            nestedItem[key] = dataItem[key];
+          });
+        });
+        dataItems = dataItems.concat(nestedItems);
+      } else {
+        dataItems.push(dataItem);
+      }
+
+    });
     return splitMultiValues(dataItems);
   }
 
-  // Transform kendo aggregates into ES metric aggregations
-  var kendoToESAgg = {
-    count: "cardinality",
-    min: "min",
-    max: "max",
-    sum: "sum",
-    average: "avg"
-  };
-
-  function kendoAggregationToES(aggregate, fields) {
-    var esAggs = {};
-
-    if (aggregate && aggregate.length > 0) {
-      esAggs = {};
-
-      aggregate.forEach(function(aggItem) {
-        var field = fields[aggItem.field].esAggName;
-
-        esAggs[aggItem.field + "_" + aggItem.aggregate] = {};
-        esAggs[aggItem.field + "_" + aggItem.aggregate][kendoToESAgg[aggItem.aggregate]] = {
-          field: field
-        };
-      });
-    }
-
-    return esAggs;
-  }
-
-  // Transform kendo groups declaration into ES bucket aggregations
-  // Only 1 level of grouping is supported for now
-  function kendoGroupToES(aggs, groups, fields) {
-    if (!groups || groups.length === 0) {
-      return;
-    }
-    var group = groups[0];
-    var field = fields[group.field];
-    var groupAgg = aggs[group.field + "_group"] = {};
-
-    // Look for a aggregate defined on group field
-    // Used to customize the bucket aggregation
-    var fieldAggregate;
-    var groupAggregates = [];
-    (group.aggregates || []).forEach(function(aggregate) {
-      if (aggregate.field === group.field) {
-        fieldAggregate = aggregate;
-      } else {
-        groupAggregates.push(aggregate);
-      }
-    });
-
-    if (fieldAggregate) {
-
-      // We support date histogramms if a 'interval' key is passed
-      // to the group definition
-      groupAgg[fieldAggregate.aggregate] = {
-        field: field.esAggName
-      };
-      if (fieldAggregate.interval) {
-        groupAgg[fieldAggregate.aggregate].interval = fieldAggregate.interval;
-      }
-    } else {
-
-      // Default is a term bucket aggregation
-      // if used on a not analyzed field or subfield
-      // it will create a group for each value of the field
-      groupAgg.terms = {
-        field: field.esAggName,
-        size: 0
-      };
-    }
-
-    var missingAgg = aggs[group.field + "_missing"] = {
-      missing: {
-        field: field.esAggName
-      }
-    };
-
-    if (groups[0].aggregates) {
-      groupAgg.aggregations = kendoAggregationToES(groupAggregates, fields);
-      missingAgg.aggregations = kendoAggregationToES(groupAggregates, fields);
-    }
-
-  }
-
+  // Split lines of data items based on their optionally multipl items
+  // Example: [{a:[1,2],b:[3]}] -> [{a:1,b:3},{a:2,b:3}]
   function splitMultiValues(items) {
     var results = [];
 
@@ -420,18 +551,25 @@
         var partialItemResults = [];
 
         // Iterate on the multiple values of this property
-        item[k].forEach(function(val) {
-          itemResults.forEach(function(result) {
+        if (item[k] && item[k].constructor == Array) {
+          item[k].forEach(function(val) {
+            itemResults.forEach(function(result) {
 
-            // Clone the result to create variants with the different values of current key
-            var newResult = {};
-            Object.keys(result).forEach(function(k2) {
-              newResult[k2] = result[k2];
+              // Clone the result to create variants with the different values of current key
+              var newResult = {};
+              Object.keys(result).forEach(function(k2) {
+                newResult[k2] = result[k2];
+              });
+              newResult[k] = val;
+              partialItemResults.push(newResult);
             });
-            newResult[k] = val;
-            partialItemResults.push(newResult);
           });
-        });
+        } else {
+          itemResults.forEach(function(result) {
+            result[k] = item[k];
+            partialItemResults.push(result);
+          });
+        }
         itemResults = partialItemResults;
       });
 

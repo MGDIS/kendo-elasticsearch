@@ -1,8 +1,8 @@
 {
   "type": "object",
-  "required": ["name", "addresses"],
+  "required": ["companyName", "addresses"],
   "properties": {
-    "name": {
+    "companyName": {
       "type": "string",
       "faker": "company.companyName"
     },
