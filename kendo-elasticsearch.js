@@ -74,16 +74,10 @@
         }
 
         // Transform kendo sort params in a ES sort list
-        esParams.sort = sortParams.map(function(sortItem) {
-          var esSortItem = {};
-          esSortItem[_fields[sortItem.field].esFilterName] = {
-            order: sortItem.dir
-          };
-          return esSortItem;
-        });
+        esParams.sort = kendoSortToES(sortParams, _fields);
 
         // Transform kendo filters into a ES query using a query_string request
-        esParams.query = kendoFiltersToES(data.filter || [], _fields, esParams.sort);
+        esParams.query = kendoFiltersToES(data.filter || [], _fields, sortParams);
 
         // Fetch only the required list of fields from ES
         esParams.fields = Object.keys(_fields)
@@ -142,6 +136,24 @@
       data.DataSource.fn.init.call(this, initOptions);
     }
   });
+
+  // Transform sort instruction into some object suitable for Elasticsearch
+  // Also deal with sorting the different nesting levels
+  function kendoSortToES(sort, fields, nestedPath) {
+    return sort.filter(function(sortItem) {
+      var field = fields[sortItem.field];
+      return field.esNestedPath === nestedPath ||
+        field.esParentType === nestedPath ||
+        field.esChildType === nestedPath;
+    }).map(function(sortItem) {
+      var field = fields[sortItem.field];
+      var esSortItem = {};
+      esSortItem[field.esFilterName] = {
+        order: sortItem.dir
+      };
+      return esSortItem;
+    });
+  }
 
   // Transform a list of Kendo filters into a ES filtered query
   function kendoFiltersToES(kendoFilters, fields, sort) {
@@ -232,7 +244,7 @@
           inner_hits: {
             fields: nestedFields[nestedPath],
             size: 10000,
-            sort: sort
+            sort: kendoSortToES(sort, fields, nestedPath)
           }
         }
       });
@@ -247,7 +259,7 @@
           inner_hits: {
             fields: parentFields[parentType],
             size: 10000,
-            sort: sort
+            sort: kendoSortToES(sort, fields, parentType)
           }
         }
       });
@@ -262,7 +274,7 @@
           inner_hits: {
             fields: childFields[childType],
             size: 10000,
-            sort: sort
+            sort: kendoSortToES(sort, fields, childType)
           }
         }
       });

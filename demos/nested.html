@@ -64,11 +64,19 @@
           group: {
             field: "companyName",
             dir: "asc"
+          },
+
+          sort: {
+            field: 'companyName',
+            dir: 'asc'
           }
         }),
 
         // other grid options besides the datasource
-        sortable: true,
+        sortable: {
+          mode: "multiple",
+          allowUnsort: true
+        },
         pageable: true,
         filterable: true,
         columns: [{

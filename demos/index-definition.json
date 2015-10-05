@@ -40,7 +40,8 @@
       }],
       "properties": {
         "addresses": {
-          "type": "nested"
+          "type": "nested",
+          "include_in_parent": true
         }
       }
     },
