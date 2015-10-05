@@ -73,8 +73,8 @@
           }],
 
           sort: {
-            field: 'birthDate',
-            dir: 'desc'
+            field: 'companyName',
+            dir: 'asc'
           }
         }),
 
@@ -85,6 +85,7 @@
         },
         pageable: true,
         filterable: true,
+        columnMenu: true,
         columns: [{
           field: 'companyName',
           title: 'Company name'

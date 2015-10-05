@@ -12,8 +12,8 @@ var client = new elasticsearch.Client({
   host: 'http://localhost:9200'
 });
 var index = 'kendo-elasticsearch-demo';
-var nbOrganizations = 100;
-var nbPersons = 1000;
+var nbOrganizations = 10000;
+var nbPersons = 100000;
 
 // Let's prepare some bodies fof Elasticsearch bulk requests
 

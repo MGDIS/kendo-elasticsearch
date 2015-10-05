@@ -38,15 +38,23 @@
             field.esFilterName = field.esName;
             if (field.esFilterSubField) {
               field.esFilterName += "." + field.esFilterSubField;
+            } else if (field.type === "string" &&
+              initOptions.schema.model.esStringSubFields &&
+              initOptions.schema.model.esStringSubFields.filter) {
+              field.esFilterName += "." + initOptions.schema.model.esStringSubFields.filter;
             }
             if (field.esNestedPath) {
-              field.esFilterName = field.esNestedPath + "."  + field.esFilterName;
+              field.esFilterName = field.esNestedPath + "." + field.esFilterName;
             }
           }
           if (!field.esAggName) {
             field.esAggName = field.esName;
             if (field.esAggSubField) {
               field.esAggName += "." + field.esAggSubField;
+            } else if (field.type === "string" &&
+              initOptions.schema.model.esStringSubFields &&
+              initOptions.schema.model.esStringSubFields.agg) {
+              field.esAggName += "." + initOptions.schema.model.esStringSubFields.agg;
             }
           }
         }
@@ -469,7 +477,7 @@
           };
 
           dataItems.forEach(function(dataItem) {
-            var group = groupsMap[dataItem[fieldKey]];
+            var group = groupsMap[dataItem[fieldKey] || ""];
 
             // If no exact match, then we may be in some range aggregation ?
             if (!group) {

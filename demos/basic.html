@@ -39,15 +39,19 @@
 
           schema: {
             model: {
+              // Use this to specify that sub fields of string fields should be used for pattern based filtering and aggregations
+              // If the subfields are different by field use 'esFilterSubField' and/or 'esAggSubField' on each filed definition
+              esStringSubFields: {
+                filter: 'lowercase',
+                agg: 'raw'
+              },
               fields: {
                 firstName: {
                   type: 'string',
-                  esFilterSubField: 'lowercase',
                   esName: 'name.firstName'
                 },
                 lastName: {
                   type: 'string',
-                  esFilterSubField: 'lowercase',
                   esName: 'name.lastName'
                 },
                 birthDate: {
