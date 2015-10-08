@@ -3,5 +3,6 @@
   "requireSpacesInsideParentheses": null,
   "requireSpacesInsideBrackets": null,
   "requireSpacesInsideArrayBrackets": null,
-  "requireCapitalizedComments": null
+  "requireCapitalizedComments": null,
+  "requireCamelCaseOrUpperCaseIdentifiers": null
 }

@@ -27,10 +27,10 @@
     "json-schema-faker": "^0.2.0",
     "karma": "^0.13.9",
     "karma-chrome-launcher": "^0.2.0",
-    "karma-mocha": "^0.2.0",
+    "karma-coverage": "^0.5.2",
+    "karma-coveralls": "^1.1.2",
     "karma-phantomjs-launcher": "^0.2.1",
     "karma-qunit": "^0.1.5",
-    "mocha": "^2.3.0",
     "phantomjs": "^1.9.18",
     "qunit": "^0.7.7",
     "request": "^2.61.0"

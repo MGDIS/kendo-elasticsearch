@@ -3,6 +3,7 @@
  *
  * Read-only, supports paging, filtering, sorting, grouping and aggregations.
  */
+
 (function($, kendo) {
   "use strict";
 
@@ -10,6 +11,9 @@
 
   data.ElasticSearchDataSource = data.DataSource.extend({
     init: function(initOptions) {
+      if (!initOptions) {
+        throw new Error("Options are required to use ElasticSearchDataSource");
+      }
 
       // Prepare the transport to query ES
       // The only required parameter is transport.read.url
@@ -22,6 +26,13 @@
         throw new Error("transport.read.url must be set to use ElasticSearchDataSource");
       }
 
+      var _fields = this._fields = initOptions.schema &&
+        initOptions.schema.model &&
+        initOptions.schema.model.fields;
+      if (!_fields) {
+        throw new Error("transport.schema.model.fields must be set to use ElasticSearchDataSource");
+      }
+
       // Associate Kendo field names to ElasticSearch field names.
       // We have to allow ElasticSearch field names to be different
       // because ES likes an "@" and/or dots in field names while Kendo fails on that.
@@ -29,7 +40,6 @@
       // or esAggName are defined or on a subfield if esFilterSubField or esAggSubField are defined.
       // Typical use case is the main field is analyzed, but it has a subfield that is not
       // (or only with a minimal analyzer)
-      var _fields = this._fields = initOptions.schema.model.fields;
       for (var k in _fields) {
         if (_fields.hasOwnProperty(k)) {
           var field = _fields[k];
@@ -223,7 +233,6 @@
       }
     });
 
-    // jscs:disable requireCamelCaseOrUpperCaseIdentifiers
     esQuery.query = {
       filtered: {
         filter: {}

@@ -1,6 +1,9 @@
 // Karma configuration
 // Generated on Fri Sep 04 2015 10:13:18 GMT+0200 (CEST)
 
+// jscs:disable
+// jshint ignore: start
+
 module.exports = function(config) {
   config.set({
 
@@ -26,21 +29,30 @@ module.exports = function(config) {
 
 
     // list of files to exclude
-    exclude: [
-    ],
+    exclude: [],
 
 
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
-    preprocessors: {
-    },
+    preprocessors: {},
 
 
     // test results reporter to use
     // possible values: 'dots', 'progress'
     // available reporters: https://npmjs.org/browse/keyword/karma-reporter
-    reporters: ['progress'],
+    reporters: ['progress', 'coverage'/*, 'coveralls'*/],
 
+    preprocessors: {
+      // source files, that you wanna generate coverage for
+      // do not include tests or libraries
+      // (these files will be instrumented by Istanbul)
+      'kendo-elasticsearch.js': ['coverage']
+    },
+
+    coverageReporter: {
+      type: 'lcov', // lcov or lcovonly are required for generating lcov.info files
+      dir: 'coverage/'
+    },
 
     // web server port
     port: 9876,
