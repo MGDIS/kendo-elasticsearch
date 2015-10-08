@@ -1,6 +1,7 @@
 # kendo-elasticsearch
 
 [![Build Status](https://travis-ci.org/MGDIS/kendo-elasticsearch.svg)](https://travis-ci.org/MGDIS/kendo-elasticsearch)
+[![Coverage Status](https://coveralls.io/repos/MGDIS/kendo-elasticsearch/badge.svg?branch=master&service=github)](https://coveralls.io/github/MGDIS/kendo-elasticsearch?branch=master)
 
 A Kendo DataSource extension so you can load data into your [Kendo UI Grid](http://docs.telerik.com/kendo-ui/api/javascript/ui/grid) from an [ElasticSearch](https://www.elasticsearch.org/) index.
 
