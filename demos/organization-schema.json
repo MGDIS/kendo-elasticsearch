@@ -31,6 +31,23 @@
           "streetPrefix": {
             "type": "string",
             "faker": "address.streetPrefix"
+          },
+          "telephones": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["value", "type"],
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "faker": "phone.phoneNumber"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [ "fax", "fix" ]
+                }
+              }
+            }
           }
         }
       }

@@ -75,10 +75,12 @@ See [the source code](./demos/dates.html).
 
 ### Nested
 
-This example illustrates displaying information from an array of nested objects, in this case addresses in the organization mapping.
+This example illustrates displaying information from an array of nested objects and arrays into a second level of nesting (addresses and addresses.telephones).
 The lines of data are duplicated much like in the "Split multi values" demo, so the page size is not visually respected.
 But the [inner hits](https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-inner-hits.html) functionality
 of ElasticSearch is used so that filtering works well.
+
+Note that due to [this issue](https://github.com/elastic/elasticsearch/issues/13064), it is necessary to use [top level inner_hits syntax](https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-inner-hits.html#top-level-inner-hits).
 
 See [the source code](./demos/nested.html).
 
@@ -117,4 +119,3 @@ See [the source code](./demos/children.html).
   - how to best use children/parent relationships ? Use [hierarchy](http://demos.telerik.com/kendo-ui/grid/hierarchy) ?
   - Move these todos into actual issues :)
   - Multi-level grouping ?
-  - Nested inside nested ?

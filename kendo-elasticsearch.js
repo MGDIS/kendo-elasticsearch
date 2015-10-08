@@ -77,7 +77,8 @@
         esParams.sort = kendoSortToES(sortParams, _fields);
 
         // Transform kendo filters into a ES query using a query_string request
-        esParams.query = kendoFiltersToES(data.filter || [], _fields, sortParams);
+        // Also add optionally a top level inner_hits definition
+        kendoFiltersToES(esParams, data.filter || [], _fields, sortParams);
 
         // Fetch only the required list of fields from ES
         esParams.fields = Object.keys(_fields)
@@ -156,7 +157,7 @@
   }
 
   // Transform a list of Kendo filters into a ES filtered query
-  function kendoFiltersToES(kendoFilters, fields, sort) {
+  function kendoFiltersToES(esQuery, kendoFilters, fields, sort) {
 
     // there are three possible structures for the kendoFilterObj:
     //  * {value: "...", operator: "...", field: " ..."}
@@ -223,34 +224,43 @@
     });
 
     // jscs:disable requireCamelCaseOrUpperCaseIdentifiers
-    var query = {
+    esQuery.query = {
       filtered: {
         filter: {}
       }
     };
+    esQuery.inner_hits = {};
 
     // Create either a 'and' or 'or' filter
-    var queryFilters = query.filtered.filter[logicalConnective] = [];
+    var queryFilters = esQuery.query.filtered.filter[logicalConnective] = [];
 
     // Create a query_string filter for all filters on root document
     queryFilters.push(combineESParams(esParams, logicalConnective));
 
     // Create a nested query_string filter for each nested document filter
     Object.keys(nestedESParams).forEach(function(nestedPath) {
-      queryFilters.push({
+      var filter = combineESParams(nestedESParams[nestedPath], logicalConnective);
+      var nestedQueryFilters = findNestedFilter(queryFilters, nestedPath, logicalConnective);
+      var nestedFilter = {
         nested: {
           path: nestedPath,
-          filter: combineESParams(nestedESParams[nestedPath], logicalConnective),
-          inner_hits: {
-            fields: nestedFields[nestedPath],
-            size: 10000,
-            sort: kendoSortToES(sort, fields, nestedPath)
-          }
+          filter: {}
         }
-      });
+      };
+      nestedFilter.nested.filter[logicalConnective] = [];
+      nestedFilter.nested.filter[logicalConnective].push(filter);
+      nestedQueryFilters.push(nestedFilter);
+      addInnerHits(esQuery.inner_hits,
+        nestedPath,
+        nestedPath,
+        nestedFields[nestedPath],
+        kendoSortToES(sort, fields, nestedPath),
+        nestedFilter.nested.filter);
     });
 
     // Create a has_parent query_string filter for each parent filter
+    // TODO: use top level inner_hits (through addInnerHits()) here too ?
+    // we could allow looking for nesting objects in parents or looking for grandparents, etc
     Object.keys(parentESParams).forEach(function(parentType) {
       queryFilters.push({
         has_parent: {
@@ -266,6 +276,8 @@
     });
 
     // Create a has_child query_string filter for each child filter
+    // TODO: use top level inner_hits (through addInnerHits()) here too ?
+    // we could allow looking for nesting objects in children or looking for grandchildren, etc
     Object.keys(childESParams).forEach(function(childType) {
       queryFilters.push({
         has_child: {
@@ -279,8 +291,70 @@
         }
       });
     });
+  }
 
-    return query;
+  // Add a inner_hits definition into the top level inner_hits object
+  // of the elasticsearch query
+  function addInnerHits(innerHits, path, partialPath, fields, sort, filter) {
+    var nestedInnerHits = false;
+    Object.keys(innerHits).forEach(function(existingPath) {
+
+      // If a inner_hit definition exists for a part of the path
+      // then we should nest this one inside recursively
+      if (path.indexOf(existingPath) === 0) {
+        var existingInnerHit = innerHits[existingPath].path[existingPath];
+        nestedInnerHits = true;
+        existingInnerHit.inner_hits = existingInnerHit.inner_hits || {};
+        addInnerHits(
+          existingInnerHit.inner_hits,
+          path,
+          path.substr(existingPath.length + 1, path.length),
+          fields,
+          sort,
+          filter);
+      }
+    });
+
+    if (!nestedInnerHits) {
+      innerHits[path] = {
+        path: {}
+      };
+      innerHits[path].path[path] = {
+        fields: fields,
+        size: 10000,
+        sort: sort,
+        query: {
+          filtered: {
+            filter: filter
+          }
+        }
+      };
+    }
+  }
+
+  // Find or create the nested filter definition for a specified nested path
+  function findNestedFilter(queryFilters, nestedPath, logicalConnective) {
+    var nestedFilter = queryFilters;
+    queryFilters.forEach(function(existingFilter) {
+      if (existingFilter && existingFilter.nested && existingFilter.nested.path) {
+
+        // A filter was walredy defined for this path, just return it we will append to it
+        if (existingFilter.nested.path === nestedPath) {
+          nestedFilter = existingFilter.nested.filter[logicalConnective];
+        }
+
+        // A filter was already defined for a part of the path
+        // Then build a multi level nested filter using recursivity
+        if (nestedPath.indexOf(existingFilter.nested.path) === 0) {
+          nestedFilter = findNestedFilter(
+            existingFilter.nested.filter[logicalConnective],
+            nestedPath.substr(existingFilter.nested.path.length + 1, nestedPath.length),
+            logicalConnective
+          );
+        }
+      }
+    });
+    return nestedFilter;
   }
 
   // Transform a single kendo filter in a string

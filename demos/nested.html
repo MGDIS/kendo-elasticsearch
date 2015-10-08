@@ -56,7 +56,19 @@
                   esNestedPath: 'addresses',
                   esName: 'city',
                   esFilterSubField: 'lowercase'
-                }
+                },
+                telephoneValue: {
+                  type: 'string',
+                  esNestedPath: 'addresses.telephones',
+                  esName: 'value',
+                  esFilterSubField: 'lowercase'
+                },
+                telephoneType: {
+                  type: 'string',
+                  esNestedPath: 'addresses.telephones',
+                  esName: 'type',
+                  esFilterSubField: 'lowercase'
+                },
               }
             }
           },
@@ -88,6 +100,12 @@
         }, {
           field: 'addressCity',
           title: 'City'
+        }, {
+          field: 'telephoneType',
+          title: 'Phone type'
+        }, {
+          field: 'telephoneValue',
+          title: 'Phone'
         }]
       });
     });
