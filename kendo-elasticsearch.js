@@ -429,9 +429,7 @@
       groupAgg.aggregations = kendoAggregationToES(groupAggregates, fields);
       missingAgg.aggregations = kendoAggregationToES(groupAggregates, fields);
     }
-
   }
-
 
   // Transform aggregation results from a ES query to kendo aggregates
   function esAggToKendoAgg(aggregations) {
@@ -602,6 +600,8 @@
   function asESParameter(value) {
     if (value.constructor == Date) {
       value = value.toISOString();
+    } else if (typeof value === 'boolean') {
+      value = '' + value;
     }
     return value.replace("\\", "\\\\").replace(/[+\-&|!()\{}\[\]^:"~*?:\/ ]/g, "\\$&");
   }

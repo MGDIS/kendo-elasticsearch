@@ -116,3 +116,6 @@ See [the source code](./demos/children.html).
   - how to best use nested objects ? Use [detail template](http://demos.telerik.com/kendo-ui/grid/detailtemplate) ? A single formatted cell ? Split lines ?
   - how to best use children/parent relationships ? Use [hierarchy](http://demos.telerik.com/kendo-ui/grid/hierarchy) ?
   - Move these todos into actual issues :)
+  - Multi-level grouping ?
+  - Filtering on boolean field.
+  - Nested inside nested ?

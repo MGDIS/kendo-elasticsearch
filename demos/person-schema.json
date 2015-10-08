@@ -1,11 +1,14 @@
 {
   "type": "object",
-  "required": ["birthDate", "name", "siblings"],
+  "required": ["birthDate", "name", "siblings", "active"],
   "properties": {
     "birthDate": {
       "type": "string",
       "format": "date-time",
       "chance": "birthday"
+    },
+    "active": {
+      "type": "boolean"
     },
     "name": {
       "type": "object",
