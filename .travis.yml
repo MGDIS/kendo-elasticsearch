@@ -1,16 +1,22 @@
+env:
+  global:
+    # Repo token to send coverage report to coveralls
+    secure: A3Ndee4ouEtAC8xMLxRjQ7h6zWOkqnKLwHvr06sdfQ9FRV2uuUKCGpKBcY7pwd6BTjlPxB4B8finTiRqVInPeGXRVW2rfEyAfTiNKrIvJQCq4h8xoOX4titeC05jiB9o1qhvfVf7McvjbdgzOa+e7tXb0S7pBIHVDVIu8HUgzQ5LT0Dt1xQ5/YEzU1vwq4WG3muBnLKW2J0pWdTExPtBk7HmZAnXE5eSfWfnDUhRJhT9uG04mM+ML7DKqozFU6f4slwnkB7zglc89I/tNqIi4mn3blix3FsqEDVauj5ba58O+ahIhGF6mnnGSMt/ffMDDyi0VS0GE8sv8idWDMVS8faIe0+br7w4B/keRv+/ou9z06+XjwkOPCmiMOdKfsUq0qnCVU48a6kPb9yhYZRL3HIIUgPgkqDqMX9oc7PoFN91j/TgyNDOJNC5jrVUqt6GhxdFF5KD4OTZaG9lJYyL7t7CTiJgRfX0d6ygK5CE4hfVExBAt9/0HzFEGlWjX5sPygdEDWF1VUpKmGDr8d1E3aI1nL9cch0uidn0gr60tlWx/RcXXNPvcjRSLVWwL7KVTWKZnsHTKozTbCdXDMPkHpOkx7//COBlX5EKTXrOxMSJOhfcNZkQaEbZRAERLl7S+0Lm/X8POYtKQ1eF0bZDQHyhCLXSzBo3FwSDY3DxrnA=
+
 branches:
   only:
-    - "master"
+    - master
 
 language: node_js
+
 node_js:
-  - "0.12"
+  - '0.12'
 
 install:
-  - "npm install"
-  - "npm install -g bower"
-  - "bower install"
+  - npm install
+  - npm install -g bower
+  - bower install
 
 script:
-  - "npm test"
-  - "npm run-script lint"
+  - npm test
+  - npm run-script lint
