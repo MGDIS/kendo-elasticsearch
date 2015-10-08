@@ -600,8 +600,8 @@
   function asESParameter(value) {
     if (value.constructor == Date) {
       value = value.toISOString();
-    } else if (typeof value === 'boolean') {
-      value = '' + value;
+    } else if (typeof value === "boolean") {
+      value = "" + value;
     }
     return value.replace("\\", "\\\\").replace(/[+\-&|!()\{}\[\]^:"~*?:\/ ]/g, "\\$&");
   }

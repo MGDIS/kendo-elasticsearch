@@ -14,7 +14,9 @@
 <body>
   <h1>Kendo Elasticsearch - demos - Dates</h1>
 
-  <div id='grid'></div>
+  <div id='grid1'></div>
+  <div id='grid2'></div>
+  <div id='grid3'></div>
 
   <!--<script src='https://code.jquery.com/jquery-2.1.4.min.js'></script>-->
   <script src='../bower_components/jquery/jquery.min.js'></script>
@@ -26,51 +28,48 @@
 
   <script>
     $(document).ready(function() {
-      $('#grid').kendoGrid({
+      var dataSourceOpts = {
+        transport: {
+          read: {
+            url: 'http://localhost:9200/kendo-elasticsearch-demo/person/_search/'
+          }
+        },
+        pageSize: 10,
 
-        // configure the datasource to be an ElasticSearchDataSource
-        dataSource: new kendo.data.ElasticSearchDataSource({
-          transport: {
-            read: {
-              url: 'http://localhost:9200/kendo-elasticsearch-demo/person/_search/'
-            }
-          },
-          pageSize: 10,
-
-          schema: {
-            model: {
-              fields: {
-                firstName: {
-                  type: 'string',
-                  esFilterSubField: 'lowercase',
-                  esName: 'name.firstName'
-                },
-                lastName: {
-                  type: 'string',
-                  esFilterSubField: 'lowercase',
-                  esName: 'name.lastName'
-                },
-                birthDate: {
-                  type: 'date'
-                }
+        schema: {
+          model: {
+            fields: {
+              firstName: {
+                type: 'string',
+                esFilterSubField: 'lowercase',
+                esName: 'name.firstName'
+              },
+              lastName: {
+                type: 'string',
+                esFilterSubField: 'lowercase',
+                esName: 'name.lastName'
+              },
+              birthDate: {
+                type: 'date'
               }
             }
-          },
-
-          group: {
-            field: "birthDate",
-            dir: "desc",
-            aggregates: [{
-                field: "birthDate",
-                aggregate: "date_histogram",
-                interval: "year"
-              }]
-              // see https://www.elastic.co/guide/en/elasticsearch/reference/2.0/search-aggregations-bucket-datehistogram-aggregation.html
-              // if defined the bucket aggregation will be a date_histogram aggregation
           }
-        }),
+        },
 
-        // other grid options besides the datasource
+        group: {
+          field: "birthDate",
+          dir: "desc",
+          aggregates: [{
+              field: "birthDate",
+              aggregate: "date_histogram",
+              interval: "year"
+            }]
+            // see https://www.elastic.co/guide/en/elasticsearch/reference/2.0/search-aggregations-bucket-datehistogram-aggregation.html
+            // if defined the bucket aggregation will be a date_histogram aggregation
+        }
+      };
+
+      var gridOptions = {
         sortable: true,
         pageable: true,
         filterable: true,
@@ -86,7 +85,15 @@
           field: 'lastName',
           title: 'Last name'
         }]
-      });
+      };
+
+      gridOptions.dataSource = new kendo.data.ElasticSearchDataSource(dataSourceOpts);
+      $('#grid1').kendoGrid(gridOptions);
+
+      dataSourceOpts.group.aggregates[0].interval = "month";
+      gridOptions.columns[0].groupHeaderTemplate = "Month of birth: #=kendo.toString(value, 'MMMM yyyy')#, Count: #=count#"
+      gridOptions.dataSource = new kendo.data.ElasticSearchDataSource(dataSourceOpts);
+      $('#grid2').kendoGrid(gridOptions);
     });
   </script>
 
