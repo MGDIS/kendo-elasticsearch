@@ -484,6 +484,11 @@
         }
       }
     };
+    opts.filter = {
+      field: "addressCountry",
+      operator: "eq",
+      value: "Bulgaria"
+    };
     var dataSource = new ElasticSearchDataSource(opts);
 
     $.mockjax({
@@ -578,6 +583,153 @@
       equal(view[0].companyName, "Telerik");
       equal(view[0].addressCountry, "Bulgaria");
       equal(view[0].telephoneValue, "860.138.6580");
+      done();
+    });
+  });
+
+  test("supports fetching parent fields", function(assert) {
+    var done = assert.async();
+
+    var opts = $.extend(true, {}, baseOpts);
+    opts.pageSize = 2;
+    opts.schema = {
+      model: {
+        fields: {
+          firstName: {
+            type: "string",
+            esName: "name.firstName"
+          },
+          lastName: {
+            type: "string",
+            esName: "name.lastName"
+          },
+          companyName: {
+            type: "string",
+            esParentType: "organization",
+            esName: "companyName"
+          }
+        }
+      }
+    };
+    opts.filter = {
+      field: "companyName",
+      operator: "neq",
+      value: "Telerik"
+    };
+    var dataSource = new ElasticSearchDataSource(opts);
+
+    $.mockjax({
+      url: "http://localhost:9200/_search",
+      type: "POST",
+      response: function(options) {
+        var data = JSON.parse(options.data);
+        equal(data.query.filtered.filter.and[1].has_parent.type, "organization");
+        this.responseText = {
+          "hits": {
+            "hits": [{
+              "fields": {
+                "name.lastName": ["Rath"],
+                "name.firstName": ["Audrey"]
+              },
+              "inner_hits": {
+                "organization": {
+                  "hits": {
+                    "hits": [{
+                      "fields": {
+                        "companyName": ["MGDIS"]
+                      }
+                    }]
+                  }
+                }
+              }
+            }, {
+              "fields": {
+                "name.lastName": ["Williamson"],
+                "name.firstName": ["Andreanne"]
+              },
+              "inner_hits": {
+                "organization": {
+                  "hits": {
+                    "hits": [{
+                      "fields": {
+                        "companyName": ["MGDIS"]
+                      }
+                    }]
+                  }
+                }
+              }
+            }]
+          }
+        };
+      }
+    });
+
+    dataSource.fetch(function() {
+      var view = dataSource.view();
+      equal(view[0].companyName, "MGDIS");
+      done();
+    });
+  });
+
+  test("supports fetching children fields", function(assert) {
+    var done = assert.async();
+
+    var opts = $.extend(true, {}, baseOpts);
+    opts.pageSize = 2;
+    opts.schema = {
+      model: {
+        fields: {
+          companyName: {
+            type: "string"
+          },
+          firstName: {
+            type: "string",
+            esChildType: "person",
+            esName: "name.firstName"
+          }
+        }
+      }
+    };
+    opts.filter = {
+      field: "firstName",
+      operator: "contains",
+      value: "Alban"
+    };
+    var dataSource = new ElasticSearchDataSource(opts);
+
+    $.mockjax({
+      url: "http://localhost:9200/_search",
+      type: "POST",
+      response: function(options) {
+        var data = JSON.parse(options.data);
+        equal(data.query.filtered.filter.and[1].has_child.type, "person");
+        this.responseText = {
+          "hits": {
+            "hits": [{
+              "fields": {
+                "companyName": ["MGDIS"]
+              },
+              "inner_hits": {
+                "person": {
+                  "hits": {
+                    "hits": [{
+                      "fields": {
+                        "name.firstName": ["Alban"]
+                      }
+                    }]
+                  }
+                }
+              }
+            }]
+          }
+        };
+      }
+    });
+
+    dataSource.fetch(function() {
+      var view = dataSource.view();
+      equal(view[0].companyName, "MGDIS");
+      equal(view[0].firstName, "Alban");
       done();
     });
   });
