@@ -72,6 +72,10 @@ See [the source code](./demos/multivalues-split.html).
 
 This example illustrates working with date fields and grouping items based on a server-side date histogram.
 
+Please note that kendo grid does not support grouping multiple times on the same field.
+At least it does not allow us to define a different group header each time.
+This is why multiple fields are defined in the model that actually redirect to the same field in ElasticSearch.
+
 See [the source code](./demos/dates.html).
 
 ### Nested
@@ -112,7 +116,7 @@ See [the source code](./demos/children.html).
   - Support empty values in sorting (always last ?)
   - Add a note about kendo grid licence, web and pro packs.
   - Add a note about ElasticSearch versions compatibility.
-  - Add notes about kendo/ES functionalities mapping and the relational behind it
+  - Add notes about kendo/ES functionalities mapping and the rational behind it
   - Is it possible to add another filter operator ? It would be nice for 'contains' and 'doesnotcontain' to be pattern based and to have a 'search' operator.
   - Combine with some external filter or query
   - Split a date field in its parts (day, month, year)

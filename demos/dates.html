@@ -51,22 +51,50 @@
               },
               birthDate: {
                 type: 'date'
+              },
+              birthDateYear: {
+                type: 'date',
+                esName: 'birthDate'
+              },
+              birthDateMonth: {
+                type: 'date',
+                esName: 'birthDate'
+              },
+              birthDateDay: {
+                type: 'date',
+                esName: 'birthDate'
               }
             }
           }
         },
 
-        group: {
-          field: "birthDate",
+        group: [{
+          field: "birthDateYear",
           dir: "desc",
           aggregates: [{
-              field: "birthDate",
+              field: "birthDateYear",
               aggregate: "date_histogram",
               interval: "year"
             }]
             // see https://www.elastic.co/guide/en/elasticsearch/reference/2.0/search-aggregations-bucket-datehistogram-aggregation.html
             // if defined the bucket aggregation will be a date_histogram aggregation
-        }
+        }, {
+          field: "birthDateMonth",
+          dir: "desc",
+          aggregates: [{
+              field: "birthDateMonth",
+              aggregate: "date_histogram",
+              interval: "month"
+            }]
+        }, {
+          field: "birthDateDay",
+          dir: "desc",
+          aggregates: [{
+              field: "birthDateDay",
+              aggregate: "date_histogram",
+              interval: "day"
+            }]
+        }]
       };
 
       var gridOptions = {
@@ -76,8 +104,19 @@
         columns: [{
           field: 'birthDate',
           format: '{0:D}',
-          title: 'Date of birth',
-          groupHeaderTemplate: "Year of birth: #=kendo.toString(value, 'yyyy')#, Count: #=count#",
+          title: 'Date of birth'
+        }, {
+          field: 'birthDateYear',
+          hidden: true,
+          groupHeaderTemplate: "#=kendo.toString(value, 'yyyy')# (#=count#)",
+        }, {
+          field: 'birthDateMonth',
+          hidden: true,
+          groupHeaderTemplate: "#=kendo.toString(value, 'MMMM')# (#=count#)",
+        }, {
+          field: 'birthDateDay',
+          hidden: true,
+          groupHeaderTemplate: "#=kendo.toString(value, 'dd')# (#=count#)",
         }, {
           field: 'firstName',
           title: 'First name'
@@ -90,10 +129,10 @@
       gridOptions.dataSource = new kendo.data.ElasticSearchDataSource(dataSourceOpts);
       $('#grid1').kendoGrid(gridOptions);
 
-      dataSourceOpts.group.aggregates[0].interval = "month";
+      /*dataSourceOpts.group.aggregates[0].interval = "month";
       gridOptions.columns[0].groupHeaderTemplate = "Month of birth: #=kendo.toString(value, 'MMMM yyyy')#, Count: #=count#"
       gridOptions.dataSource = new kendo.data.ElasticSearchDataSource(dataSourceOpts);
-      $('#grid2').kendoGrid(gridOptions);
+      $('#grid2').kendoGrid(gridOptions);*/
     });
   </script>
 
