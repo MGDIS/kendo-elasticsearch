@@ -28,6 +28,10 @@
       "type": "string",
       "faker": "address.country"
     },
+    "birthCity": {
+      "type": "string",
+      "faker": "address.city"
+    },
     "emails": {
       "type": "array",
       "minItems": 1,

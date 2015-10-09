@@ -39,20 +39,23 @@
 
           schema: {
             model: {
+              esStringSubFields: {
+                filter: 'lowercase',
+                agg: 'raw'
+              },
               fields: {
                 birthCountry: {
-                  type: 'string',
-                  esFilterSubField: 'lowercase',
-                  esAggSubField: 'raw'
+                  type: 'string'
+                },
+                birthCity: {
+                  type: 'string'
                 },
                 firstName: {
                   type: 'string',
-                  esFilterSubField: 'lowercase',
                   esName: 'name.firstName'
                 },
                 lastName: {
                   type: 'string',
-                  esFilterSubField: 'lowercase',
                   esName: 'name.lastName'
                 },
                 birthDate: {
@@ -65,14 +68,21 @@
             }
           },
 
-          group: {
+          group: [{
             field: "birthCountry",
             dir: "asc",
             aggregates: [{
               field: 'siblings',
               aggregate: 'max'
             }]
-          }
+          }, {
+            field: "birthCity",
+            dir: "asc",
+            aggregates: [{
+              field: 'siblings',
+              aggregate: 'max'
+            }]
+          }]
 
         }),
 
@@ -85,8 +95,12 @@
           groupHeaderTemplate: "Birth country: #=value#, Count: #=count#",
           title: "Birth country"
         }, {
+          field: 'birthCity',
+          groupHeaderTemplate: "Birth city: #=value#, Count: #=count#",
+          title: "Birth city"
+        }, {
           field: 'birthDate',
-          format:'{0:D}',
+          format: '{0:D}',
           title: 'Date of birth'
         }, {
           field: 'firstName',

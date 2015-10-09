@@ -104,7 +104,7 @@
         esParams.aggs = kendoAggregationToES(data.aggregate, _fields);
 
         // Transform Kendo group instruction into an ES bucket aggregation
-        kendoGroupToES(esParams.aggs, data.group, _fields);
+        kendoGroupsToES(esParams.aggs, data.group, _fields);
 
         return JSON.stringify(esParams);
       };
@@ -116,7 +116,7 @@
       schema.parse = function(response) {
         var dataItems = esHitsToDataItems(response.hits.hits, _fields);
         var aggregates = esAggToKendoAgg(response.aggregations);
-        var groups = esAggToKendoGroups(dataItems, response.aggregations);
+        var groups = esAggsToKendoGroups(dataItems, response.aggregations);
 
         return {
           total: response.hits.total,
@@ -460,13 +460,24 @@
   }
 
   // Transform kendo groups declaration into ES bucket aggregations
-  // Only 1 level of grouping is supported for now
-  function kendoGroupToES(aggs, groups, fields) {
-    if (!groups || groups.length === 0) {
-      return;
-    }
-    var group = groups[0];
+  function kendoGroupsToES(aggs, groups, fields) {
+    var previousLevelAggs = [aggs];
+    groups.forEach(function(group) {
+      var nextLevelAggs = kendoGroupToES(group, fields);
+      previousLevelAggs.forEach(function(previousLevelAgg) {
+        Object.keys(nextLevelAggs).forEach(function(nextLevelAggKey) {
+          previousLevelAgg[nextLevelAggKey] = nextLevelAggs[nextLevelAggKey];
+        });
+      });
+      previousLevelAggs = Object.keys(nextLevelAggs).map(function(nextLevelAggKey) {
+        return nextLevelAggs[nextLevelAggKey].aggregations;
+      });
+    });
+  }
+
+  function kendoGroupToES(group, fields) {
     var field = fields[group.field];
+    var aggs = {};
     var groupAgg = aggs[group.field + "_group"] = {};
 
     // Look for a aggregate defined on group field
@@ -508,10 +519,11 @@
       }
     };
 
-    if (groups[0].aggregates) {
-      groupAgg.aggregations = kendoAggregationToES(groupAggregates, fields);
-      missingAgg.aggregations = kendoAggregationToES(groupAggregates, fields);
-    }
+    var esGroupAggregates = group.aggregates ? kendoAggregationToES(groupAggregates, fields) : {};
+    groupAgg.aggregations = esGroupAggregates;
+    missingAgg.aggregations = esGroupAggregates;
+
+    return aggs;
   }
 
   // Transform aggregation results from a ES query to kendo aggregates
@@ -531,70 +543,120 @@
   }
 
   // Transform ES bucket aggregations into kendo groups of data items
-  function esAggToKendoGroups(dataItems, aggregations) {
-    var groups = [];
+  // See doc here for format of groups: http://docs.telerik.com/KENDO-UI/api/javascript/data/datasource#configuration-schema.groups
+  function esAggsToKendoGroups(dataItems, aggregations) {
+    var allGroups = [];
     if (aggregations) {
+
+      // Find aggregations that are grouping aggregations (ie buckets in ES)
       Object.keys(aggregations).forEach(function(aggKey) {
-        var suffixLength = "group".length + 1;
+        var groups = [];
+        var suffixLength = "_group".length;
         if (aggKey.substr(aggKey.length - suffixLength) === "_group") {
           var fieldKey = aggKey.substr(0, aggKey.length - suffixLength);
-          var groupsMap = {};
-          var groupKeys = [];
 
-          // Each bucket in ES aggregation result is a group
-          aggregations[aggKey].buckets.forEach(function(bucket) {
-            var bucketKey = bucket.key_as_string || bucket.key;
-            groupKeys.push(bucketKey);
-            groupsMap[bucketKey] = {
-              field: fieldKey,
-              value: bucketKey,
-              hasSubGroups: false,
-              aggregates: esAggToKendoAgg(bucket),
-              items: []
-            };
-            groupsMap[bucketKey].aggregates[fieldKey] = {
-              count: bucket.doc_count
-            };
-          });
+          // First extract kendo groups definitions from the buckets
+          var groupAggregation = aggregations[aggKey];
+          var missingAggregation = aggregations[fieldKey + "_missing"];
+          var groupDefs = esAggToKendoGroups(
+            groupAggregation,
+            missingAggregation,
+            fieldKey);
 
-          // Special case for the missing value
-          groupsMap[""] = {
-            field: fieldKey,
-            value: "",
-            hasSubGroups: false,
-            aggregates: esAggToKendoAgg(aggregations[fieldKey + "_missing"]),
-            items: []
-          };
-          groupsMap[""].aggregates[fieldKey] = {
-            count: aggregations[fieldKey + "_missing"].doc_count
-          };
+          // Then distribute the data items in the groups
+          groups = fillDataItemsInGroups(groupDefs, dataItems, fieldKey);
 
-          dataItems.forEach(function(dataItem) {
-            var group = groupsMap[dataItem[fieldKey] || ""];
-
-            // If no exact match, then we may be in some range aggregation ?
-            if (!group) {
-              for (var i = 0; i < groupKeys.length; i++) {
-                if (dataItem[fieldKey] >= groupKeys[i]) {
-                  if (!groupKeys[i + 1] || dataItem[fieldKey] < groupKeys[i + 1]) {
-                    group = groupsMap[groupKeys[i]];
-                  }
-                }
+          // Case when there is subgroups. Solve it recursively.
+          var hasSubgroups = false;
+          if (groupAggregation.buckets && groupAggregation.buckets[0]) {
+            Object.keys(groupAggregation.buckets[0]).forEach(function(bucketKey) {
+              if (bucketKey.substr(bucketKey.length - suffixLength) === "_group") {
+                hasSubgroups = true;
               }
+            });
+          }
+          groups.forEach(function(group) {
+            if (hasSubgroups) {
+              group.hasSubgroups = true;
+              group.items = esAggsToKendoGroups(group.items, group.bucket);
             }
-
-            if (!group) {
-              throw new Error("No group found, val: " + dataItem[fieldKey] + " field: " + fieldKey);
-            }
-            group.items.push(dataItem);
-            if (group.items.length === 1) {
-              groups.push(group);
-            }
+            delete group.bucket;
           });
+
+          allGroups = allGroups.concat(groups);
         }
       });
     }
 
+    return allGroups;
+  }
+
+  // Transform a single bucket aggregation into kendo groups definitions
+  // Does not fill up the data items
+  function esAggToKendoGroups(groupAggregation, missingAggregation, fieldKey) {
+    var groupsMap = {};
+    var groupKeys = [];
+
+    // Each bucket in ES aggregation result is a group
+    groupAggregation.buckets.forEach(function(bucket) {
+      var bucketKey = bucket.key_as_string || bucket.key;
+      groupKeys.push(bucketKey);
+      groupsMap[bucketKey] = {
+        field: fieldKey,
+        value: bucketKey,
+        hasSubgroups: false,
+        aggregates: esAggToKendoAgg(bucket),
+        items: [],
+        bucket: bucket
+      };
+      groupsMap[bucketKey].aggregates[fieldKey] = {
+        count: bucket.doc_count
+      };
+    });
+
+    // Special case for the missing value
+    groupsMap[""] = {
+      field: fieldKey,
+      value: "",
+      hasSubgroups: false,
+      aggregates: esAggToKendoAgg(missingAggregation),
+      items: []
+    };
+    groupsMap[""].aggregates[fieldKey] = {
+      count: missingAggregation.doc_count
+    };
+
+    return {
+      map: groupsMap,
+      keys: groupKeys
+    };
+  }
+
+  // distribute data items in groups based on a field value
+  function fillDataItemsInGroups(groupDefs, dataItems, fieldKey) {
+    var groups = [];
+    dataItems.forEach(function(dataItem) {
+      var group = groupDefs.map[dataItem[fieldKey] || ""];
+
+      // If no exact match, then we may be in some range aggregation ?
+      if (!group) {
+        for (var i = 0; i < groupDefs.keys.length; i++) {
+          if (dataItem[fieldKey] >= groupDefs.keys[i]) {
+            if (!groupDefs.keys[i + 1] || dataItem[fieldKey] < groupDefs.keys[i + 1]) {
+              group = groupDefs.map[groupDefs.keys[i]];
+            }
+          }
+        }
+      }
+
+      if (!group) {
+        throw new Error("No group found, val: " + dataItem[fieldKey] + " field: " + fieldKey);
+      }
+      group.items.push(dataItem);
+      if (group.items.length === 1) {
+        groups.push(group);
+      }
+    });
     return groups;
   }
 
