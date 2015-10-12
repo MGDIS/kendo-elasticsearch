@@ -54,6 +54,10 @@
                   type: 'string',
                   esName: 'name.lastName'
                 },
+                title: {
+                  type: 'string',
+                  esName: 'name.title'
+                },
                 birthDate: {
                   type: 'date'
                 },
@@ -73,10 +77,23 @@
         // other grid options besides the datasource
         sortable: true,
         pageable: true,
-        filterable: true,
+        filterable: {
+          extra: true,
+          operators: {
+            string: {
+              search: "Search",
+              eq: "Is equal to",
+              neq: "Is not equal to",
+              startswith: "Starts with",
+              contains: "Contains",
+              doesnotcontain: "Does not contain",
+              endswith: "Ends with"
+            }
+          }
+        },
         columns: [{
           field: 'birthDate',
-          format:'{0:D}',
+          format: '{0:D}',
           title: 'Date of birth'
         }, {
           field: 'active',
@@ -87,6 +104,9 @@
         }, {
           field: 'lastName',
           title: 'Last name'
+        }, {
+          field: 'title',
+          title: 'Title'
         }]
       });
     });

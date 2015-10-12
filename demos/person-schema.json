@@ -21,6 +21,10 @@
         "lastName": {
           "type": "string",
           "faker": "name.lastName"
+        },
+        "title": {
+          "type": "string",
+          "faker": "name.title"
         }
       }
     },

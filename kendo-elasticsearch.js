@@ -160,7 +160,8 @@
       var field = fields[sortItem.field];
       var esSortItem = {};
       esSortItem[field.esFilterName] = {
-        order: sortItem.dir
+        order: sortItem.dir,
+        missing: "_last"
       };
       return esSortItem;
     });
@@ -373,7 +374,7 @@
     // Use the filter field name except for contains
     // that should use classical search instead of regexp
     var field;
-    if (kendoFilter.operator === "contains" || kendoFilter.operator === "doesnotcontain") {
+    if (kendoFilter.operator === "search") {
       field = fields[kendoFilter.field].esName;
     } else {
       field = fields[kendoFilter.field].esFilterName;
@@ -384,7 +385,7 @@
 
     var simpleBinaryOperators = {
       eq: "",
-      contains: "",
+      search: "",
       lt: "<",
       lte: "<=",
       gt: ">",
@@ -398,8 +399,10 @@
       switch (kendoFilter.operator) {
         case "neq":
           return "NOT (" + fieldEscaped + ":" + valueEscaped + ")";
+        case "contains":
+          return "(" + fieldEscaped + ":*" + valueEscaped + "*)";
         case "doesnotcontain":
-          return "NOT (" + fieldEscaped + ":" + valueEscaped + ")";
+          return "NOT (" + fieldEscaped + ":*" + valueEscaped + "*)";
         case "startswith":
           return fieldEscaped + ":" + valueEscaped + "*";
         case "endswith":

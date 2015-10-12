@@ -28,7 +28,7 @@ Afterwards you just have to open the HTML files from the demos folder in your br
 ### Basic
 
 This example queries the "person" mapping. It has paging, sorting and filtering.
-Filtering of text fields is based on a "lowercase" subfield, except for "contains" which behaves as a classical keywords search.
+Filtering of text fields is based on a "lowercase" subfield, except for the additional "search" operator which behaves as a classical keywords search.
 
 See [the source code](./demos/basic.html).
 
@@ -102,7 +102,7 @@ See [the source code](./demos/parent.html).
 
 ### Children
 
-This example illustrates displaying information from a children documents.
+This example illustrates displaying information from children documents.
 
 Please note that on ElasticSearch pre 2.0 the inner hits functionality has a bug that prevents us from using a search URL that includes the type.
 See the [related issue](https://github.com/elastic/elasticsearch/issues/13898).
@@ -113,14 +113,9 @@ See [the source code](./demos/children.html).
 
 ## TODO:
 
-  - Support empty values in sorting (always last ?)
   - Add a note about kendo grid licence, web and pro packs.
   - Add a note about ElasticSearch versions compatibility.
   - Add notes about kendo/ES functionalities mapping and the rational behind it
-  - Is it possible to add another filter operator ? It would be nice for 'contains' and 'doesnotcontain' to be pattern based and to have a 'search' operator.
   - Combine with some external filter or query
-  - Split a date field in its parts (day, month, year)
-  - how to best use nested objects ? Use [detail template](http://demos.telerik.com/kendo-ui/grid/detailtemplate) ? A single formatted cell ? Split lines ?
-  - how to best use children/parent relationships ? Use [hierarchy](http://demos.telerik.com/kendo-ui/grid/hierarchy) ?
+  - Using bucket aggregations to fill filters with dropdown list.
   - Move these todos into actual issues :)
-  - Multi-level grouping ?

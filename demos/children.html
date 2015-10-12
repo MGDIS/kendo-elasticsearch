@@ -84,11 +84,25 @@
           allowUnsort: true
         },
         pageable: true,
-        filterable: true,
+        filterable: {
+          extra: true,
+          operators: {
+            string: {
+              search: "Search",
+              eq: "Is equal to",
+              neq: "Is not equal to",
+              startswith: "Starts with",
+              contains: "Contains",
+              doesnotcontain: "Does not contain",
+              endswith: "Ends with"
+            }
+          }
+        },
         columnMenu: true,
         columns: [{
           field: 'companyName',
-          title: 'Company name'
+          title: 'Company name',
+          hidden: true
         }, {
           field: 'birthDate',
           format: '{0:D}',
