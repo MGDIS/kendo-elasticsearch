@@ -107,7 +107,7 @@ This example illustrates displaying information from children documents.
 Please note that on ElasticSearch pre 2.0 the inner hits functionality has a bug that prevents us from using a search URL that includes the type.
 See the [related issue](https://github.com/elastic/elasticsearch/issues/13898).
 
-Also sorting on the child [is not possible yet](https://github.com/elastic/elasticsearch/issues/2917).
+Also sorting on the child [is not possible yet](https://github.com/elastic/elasticsearch/issues/2917), or only only as a secondary sort inside the children of a same parent.
 
 See [the source code](./demos/children.html).
 
