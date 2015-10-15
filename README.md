@@ -115,7 +115,7 @@ See [the source code](./demos/children.html).
 
 This example illustrates passing a ElasticSearch mapping instead of kendo fields definitions.
 
-The datasource will automatically transform one in the other.
+The datasource will automatically transform one into the other.
 
 See [the source code](./demos/mapping.html).
 

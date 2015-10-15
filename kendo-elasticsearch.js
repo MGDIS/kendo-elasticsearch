@@ -33,7 +33,6 @@
       if (_model.esMapping) {
         _model.fields = _model.fields || {};
         kendoFieldsFromESMapping(_model.fields, _model.esMapping);
-        console.log(_model.fields);
       }
 
       var _fields = this._fields = _model.fields;
@@ -163,20 +162,19 @@
       var property = mapping.properties[propertyKey];
       var prefixedName = prefix ? prefix + "_" + propertyKey : propertyKey;
 
-      // Case where the property is a nested object
       if (property.type === "nested") {
+
+        // Case where the property is a nested object
         var subNestedPath = nestedPath ? nestedPath + "." + propertyKey : propertyKey;
         kendoFieldsFromESMapping(fields, property, prefixedName, "", subNestedPath);
-      }
+      }  else if (property.properties) {
 
-      // Case where the property is non nested object
-      else if (property.properties) {
+        // Case where the property is non nested object
         var subEsPrefix = esPrefix ? esPrefix + "." + propertyKey : propertyKey;
         kendoFieldsFromESMapping(fields, property, prefixedName, subEsPrefix, nestedPath);
-      }
+      } else {
 
-      // Finally case of a leaf property
-      else {
+        // Finally case of a leaf property
         var field = fields[prefixedName] = fields[prefixedName] || {};
 
         // the field was already defined with a nested path,
@@ -263,6 +261,9 @@
       }
     });
     filters.forEach(function(filter) {
+      if (!fields[filter.field]) {
+        throw new Error("Unknown field in filter: " + filter.field);
+      }
       if (fields[filter.field].esNestedPath) {
         var nestedPath = fields[filter.field].esNestedPath;
         nestedESParams[nestedPath]

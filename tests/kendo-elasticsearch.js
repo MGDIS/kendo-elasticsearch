@@ -734,4 +734,137 @@
     });
   });
 
+  test("supports parsing ES mapping", function(assert) {
+    var done = assert.async();
+
+    var opts = $.extend(true, {}, baseOpts);
+    opts.pageSize = 2;
+    opts.schema = {
+      model: {
+        esMapping: {
+          properties: {
+            companyName: {
+              type: "string"
+            },
+            addresses: {
+              type: "nested",
+              properties: {
+                country: {
+                  type: "string"
+                },
+                telephones: {
+                  type: "nested",
+                  properties: {
+                    value: "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+    opts.filter = {
+      field: "addresses_country",
+      operator: "eq",
+      value: "Bulgaria"
+    };
+    var dataSource = new ElasticSearchDataSource(opts);
+
+    $.mockjax({
+      url: "http://localhost:9200/_search",
+      type: "POST",
+      response: function(options) {
+        var data = JSON.parse(options.data);
+        equal(data.query.filtered.filter.and[1].nested.path, "addresses");
+        ok(data.inner_hits.hasOwnProperty("addresses"));
+        this.responseText = {
+          "hits": {
+            "hits": [{
+              "fields": {
+                "companyName": ["Telerik"]
+              },
+              "inner_hits": {
+                "addresses": {
+                  "hits": {
+                    "hits": [{
+                      "fields": {
+                        "country": ["Bulgaria"]
+                      },
+                      "inner_hits": {
+                        "addresses.telephones": {
+                          "hits": {
+                            "hits": [{
+                              "fields": {
+                                "value": ["860.138.6580"]
+                              }
+                            }, {
+                              "fields": {
+                                "value": ["(979) 154-0643 x246"]
+                              }
+                            }]
+                          }
+                        }
+                      }
+                    }, {
+                      "fields": {
+                        "country": ["USA"]
+                      },
+                      "inner_hits": {
+                        "addresses.telephones": {
+                          "hits": {
+                            "hits": [{
+                              "fields": {
+                                "value": ["(516) 982-7971"]
+                              }
+                            }]
+                          }
+                        }
+                      }
+                    }]
+                  }
+                }
+              }
+            }, {
+              "fields": {
+                "companyName": ["MGDIS"]
+              },
+              "inner_hits": {
+                "addresses": {
+                  "hits": {
+                    "hits": [{
+                      "fields": {
+                        "country": ["France"]
+                      },
+                      "inner_hits": {
+                        "addresses.telephones": {
+                          "hits": {
+                            "hits": [{
+                              "fields": {
+                                "value": ["027-143-6935"]
+                              }
+                            }]
+                          }
+                        }
+                      }
+                    }]
+                  }
+                }
+              }
+            }]
+          }
+        };
+      }
+    });
+
+    dataSource.fetch(function() {
+      var view = dataSource.view();
+      equal(view.length, 4);
+      equal(view[0].companyName, "Telerik");
+      equal(view[0].addresses_country, "Bulgaria");
+      equal(view[0].addresses_telephones_value, "860.138.6580");
+      done();
+    });
+  });
+
 }());
