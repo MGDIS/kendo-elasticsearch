@@ -39,35 +39,33 @@
 
           schema: {
             model: {
+              esStringSubFields: {
+                filter: 'lowercase',
+                agg: 'raw'
+              },
               fields: {
                 companyName: {
-                  type: 'string',
-                  esFilterSubField: 'lowercase',
-                  esAggSubField: 'raw'
+                  type: 'string'
                 },
                 addressCountry: {
                   type: 'string',
                   esNestedPath: 'addresses',
-                  esName: 'country',
-                  esFilterSubField: 'lowercase'
+                  esName: 'country'
                 },
                 addressCity: {
                   type: 'string',
                   esNestedPath: 'addresses',
-                  esName: 'city',
-                  esFilterSubField: 'lowercase'
+                  esName: 'city'
                 },
                 telephoneValue: {
                   type: 'string',
                   esNestedPath: 'addresses.telephones',
-                  esName: 'value',
-                  esFilterSubField: 'lowercase'
+                  esName: 'value'
                 },
                 telephoneType: {
                   type: 'string',
                   esNestedPath: 'addresses.telephones',
-                  esName: 'type',
-                  esFilterSubField: 'lowercase'
+                  esName: 'type'
                 },
               }
             }

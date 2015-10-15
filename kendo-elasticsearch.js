@@ -26,11 +26,19 @@
         throw new Error("transport.read.url must be set to use ElasticSearchDataSource");
       }
 
-      var _fields = this._fields = initOptions.schema &&
-        initOptions.schema.model &&
-        initOptions.schema.model.fields;
+      var _model = initOptions.schema && initOptions.schema.model;
+      if (!_model) {
+        throw new Error("transport.schema.model must be set to use ElasticSearchDataSource");
+      }
+      if (_model.esMapping) {
+        _model.fields = _model.fields || {};
+        kendoFieldsFromESMapping(_model.fields, _model.esMapping);
+        console.log(_model.fields);
+      }
+
+      var _fields = this._fields = _model.fields;
       if (!_fields) {
-        throw new Error("transport.schema.model.fields must be set to use ElasticSearchDataSource");
+        throw new Error("transport.schema.model.fields/esMapping must be set");
       }
 
       // Associate Kendo field names to ElasticSearch field names.
@@ -49,9 +57,9 @@
             if (field.esFilterSubField) {
               field.esFilterName += "." + field.esFilterSubField;
             } else if (field.type === "string" &&
-              initOptions.schema.model.esStringSubFields &&
-              initOptions.schema.model.esStringSubFields.filter) {
-              field.esFilterName += "." + initOptions.schema.model.esStringSubFields.filter;
+              _model.esStringSubFields &&
+              _model.esStringSubFields.filter) {
+              field.esFilterName += "." + _model.esStringSubFields.filter;
             }
             if (field.esNestedPath) {
               field.esFilterName = field.esNestedPath + "." + field.esFilterName;
@@ -62,9 +70,9 @@
             if (field.esAggSubField) {
               field.esAggName += "." + field.esAggSubField;
             } else if (field.type === "string" &&
-              initOptions.schema.model.esStringSubFields &&
-              initOptions.schema.model.esStringSubFields.agg) {
-              field.esAggName += "." + initOptions.schema.model.esStringSubFields.agg;
+              _model.esStringSubFields &&
+              _model.esStringSubFields.agg) {
+              field.esAggName += "." + _model.esStringSubFields.agg;
             }
           }
         }
@@ -147,6 +155,44 @@
       data.DataSource.fn.init.call(this, initOptions);
     }
   });
+
+  // Transform a mapping definition from ElasticSearch into a kendo fields map
+  function kendoFieldsFromESMapping(fields, mapping, prefix, esPrefix, nestedPath) {
+    prefix = prefix || "";
+    Object.keys(mapping.properties).forEach(function(propertyKey) {
+      var property = mapping.properties[propertyKey];
+      var prefixedName = prefix ? prefix + "_" + propertyKey : propertyKey;
+
+      // Case where the property is a nested object
+      if (property.type === "nested") {
+        var subNestedPath = nestedPath ? nestedPath + "." + propertyKey : propertyKey;
+        kendoFieldsFromESMapping(fields, property, prefixedName, "", subNestedPath);
+      }
+
+      // Case where the property is non nested object
+      else if (property.properties) {
+        var subEsPrefix = esPrefix ? esPrefix + "." + propertyKey : propertyKey;
+        kendoFieldsFromESMapping(fields, property, prefixedName, subEsPrefix, nestedPath);
+      }
+
+      // Finally case of a leaf property
+      else {
+        var field = fields[prefixedName] = fields[prefixedName] || {};
+
+        // the field was already defined with a nested path,
+        // then we are in the case of field both nested and included in parent
+        // then we should not consider it as a real leaf property
+        if (!field.esNestedPath) {
+          field.type = field.type || property.type;
+
+          if (nestedPath) {
+            field.esNestedPath = nestedPath;
+          }
+          field.esName = esPrefix ? esPrefix + "." + propertyKey : propertyKey;
+        }
+      }
+    });
+  }
 
   // Transform sort instruction into some object suitable for Elasticsearch
   // Also deal with sorting the different nesting levels

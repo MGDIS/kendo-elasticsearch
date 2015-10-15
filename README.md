@@ -111,6 +111,14 @@ Also sorting on the child [is not possible yet](https://github.com/elastic/elast
 
 See [the source code](./demos/children.html).
 
+### Mapping
+
+This example illustrates passing a ElasticSearch mapping instead of kendo fields definitions.
+
+The datasource will automatically transform one in the other.
+
+See [the source code](./demos/mapping.html).
+
 ## TODO:
 
   - Add a note about kendo grid licence, web and pro packs.

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset='utf-8'>
+  <title>Kendo Elasticsearch - demos - Mapping</title>
+
+  <!--<link rel='stylesheet' href='http://kendo.cdn.telerik.com/2014.1.318/styles/kendo.common.min.css'>-->
+  <link rel='stylesheet' href='../bower_components/kendo-ui/styles/kendo.common.min.css'>
+  <!--<link rel='stylesheet' href='http://kendo.cdn.telerik.com/2014.1.318/styles/kendo.default.min.css'>-->
+  <link rel='stylesheet' href='../bower_components/kendo-ui/styles/kendo.default.min.css'>
+</head>
+
+<body>
+  <h1>Kendo Elasticsearch - demos - Mapping</h1>
+
+  <div id='grid'></div>
+
+  <!--<script src='https://code.jquery.com/jquery-2.1.4.min.js'></script>-->
+  <script src='../bower_components/jquery/jquery.min.js'></script>
+  <!--<script src='http://kendo.cdn.telerik.com/2014.1.318/js/kendo.web.min.js'></script>-->
+  <script src='../bower_components/kendo-ui/src/js/kendo.web.js'></script>
+  <!--<script src='https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js'></script>-->
+  <script src='../bower_components/moment/min/moment.min.js'></script>
+  <script src='../kendo-elasticsearch.js'></script>
+
+  <script>
+    $(document).ready(function() {
+      $.ajax('http://localhost:9200/kendo-elasticsearch-demo/_mapping/organization').then(function(data){
+        var mapping = data['kendo-elasticsearch-demo'].mappings.organization;
+        console.log(mapping);
+
+        $('#grid').kendoGrid({
+
+          // configure the datasource to be an ElasticSearchDataSource
+          dataSource: new kendo.data.ElasticSearchDataSource({
+            transport: {
+              read: {
+                url: 'http://localhost:9200/kendo-elasticsearch-demo/organization/_search/'
+              }
+            },
+            pageSize: 10,
+
+            schema: {
+              model: {
+                esStringSubFields: {
+                  filter: 'lowercase',
+                  agg: 'raw'
+                },
+                esMapping: mapping
+              }
+            },
+
+            group: {
+              field: "companyName",
+              dir: "asc"
+            },
+
+            sort: {
+              field: 'companyName',
+              dir: 'asc'
+            }
+          }),
+
+          // other grid options besides the datasource
+          sortable: {
+            mode: "multiple",
+            allowUnsort: true
+          },
+          pageable: true,
+          filterable: {
+            extra: true,
+            operators: {
+              string: {
+                search: "Search",
+                eq: "Is equal to",
+                neq: "Is not equal to",
+                startswith: "Starts with",
+                contains: "Contains",
+                doesnotcontain: "Does not contain",
+                endswith: "Ends with"
+              }
+            }
+          },
+          columns: [{
+            field: 'companyName',
+            title: 'Company name'
+          }, {
+            field: 'addresses_country',
+            title: 'Country'
+          }, {
+            field: 'addresses_city',
+            title: 'City'
+          }, {
+            field: 'addresses_telephones_type',
+            title: 'Phone type'
+          }, {
+            field: 'addresses_telephones_value',
+            title: 'Phone'
+          }]
+        });
+      });
+    });
+  </script>
+
+</body>
+
+</html>
