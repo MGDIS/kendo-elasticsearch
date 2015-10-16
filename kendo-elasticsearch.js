@@ -162,7 +162,7 @@
     mapping, fields, prefix, esPrefix, nestedPath) {
     fields = fields || {};
     prefix = prefix || "";
-    Object.keys(mapping.properties).forEach(function(propertyKey) {
+    Object.keys(mapping.properties || {}).forEach(function(propertyKey) {
       var property = mapping.properties[propertyKey];
       var prefixedName = prefix ? prefix + "_" + propertyKey : propertyKey;
 
@@ -172,12 +172,15 @@
         var subNestedPath = nestedPath ? nestedPath + "." + propertyKey : propertyKey;
         data.ElasticSearchDataSource
           .kendoFieldsFromESMapping(property, fields, prefixedName, "", subNestedPath);
-      } else if (property.type === "object" || property.properties) {
+      } else if (property.properties) {
 
-        // Case where the property is non nested object
+        // Case where the property is a non nested object with properties
         var subEsPrefix = esPrefix ? esPrefix + "." + propertyKey : propertyKey;
         data.ElasticSearchDataSource
           .kendoFieldsFromESMapping(property, fields, prefixedName, subEsPrefix, nestedPath);
+      } else if (property.type === "object") {
+
+        // Case where the property is a non nested object with zero subproperties. do nothing.
       } else {
 
         // Finally case of a leaf property
