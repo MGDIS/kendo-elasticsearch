@@ -32,7 +32,7 @@
       }
       if (_model.esMapping) {
         _model.fields = _model.fields || {};
-        data.ElasticSearchDataSource.kendoFieldsFromESMapping(_model.fields, _model.esMapping);
+        data.ElasticSearchDataSource.kendoFieldsFromESMapping(_model.esMapping, _model.fields);
       }
 
       var _fields = this._fields = _model.fields;
@@ -159,7 +159,8 @@
   // This utility function is exposed as it can be interesting to use it before instantiating
   // the actual datasource
   data.ElasticSearchDataSource.kendoFieldsFromESMapping = function(
-    fields, mapping, prefix, esPrefix, nestedPath) {
+    mapping, fields, prefix, esPrefix, nestedPath) {
+    fields = fields || {};
     prefix = prefix || "";
     Object.keys(mapping.properties).forEach(function(propertyKey) {
       var property = mapping.properties[propertyKey];
@@ -170,13 +171,13 @@
         // Case where the property is a nested object
         var subNestedPath = nestedPath ? nestedPath + "." + propertyKey : propertyKey;
         data.ElasticSearchDataSource
-          .kendoFieldsFromESMapping(fields, property, prefixedName, "", subNestedPath);
+          .kendoFieldsFromESMapping(property, fields, prefixedName, "", subNestedPath);
       } else if (property.type === "object" || property.properties) {
 
         // Case where the property is non nested object
         var subEsPrefix = esPrefix ? esPrefix + "." + propertyKey : propertyKey;
         data.ElasticSearchDataSource
-          .kendoFieldsFromESMapping(fields, property, prefixedName, subEsPrefix, nestedPath);
+          .kendoFieldsFromESMapping(property, fields, prefixedName, subEsPrefix, nestedPath);
       } else {
 
         // Finally case of a leaf property
@@ -195,6 +196,8 @@
         }
       }
     });
+
+    return fields;
   };
 
   // Transform sort instruction into some object suitable for Elasticsearch
