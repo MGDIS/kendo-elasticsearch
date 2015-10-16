@@ -53,8 +53,10 @@
           field.esName = field.esName || k;
           if (!field.esFilterName) {
             field.esFilterName = field.esName;
-            if (field.esFilterSubField) {
-              field.esFilterName += "." + field.esFilterSubField;
+            if (field.hasOwnProperty("esFilterSubField")) {
+              if (field.esFilterSubField) {
+                field.esFilterName += "." + field.esFilterSubField;
+              }
             } else if (field.type === "string" &&
               _model.esStringSubFields &&
               _model.esStringSubFields.filter) {
@@ -66,8 +68,10 @@
           }
           if (!field.esAggName) {
             field.esAggName = field.esName;
-            if (field.esAggSubField) {
-              field.esAggName += "." + field.esAggSubField;
+            if (field.hasOwnProperty("esAggSubField")) {
+              if (field.esAggSubField) {
+                field.esAggName += "." + field.esAggSubField;
+              }
             } else if (field.type === "string" &&
               _model.esStringSubFields &&
               _model.esStringSubFields.agg) {
