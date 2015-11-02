@@ -323,6 +323,8 @@
       nestedFilter.nested.filter[logicalConnective] = [];
       nestedFilter.nested.filter[logicalConnective].push(filter);
       nestedQueryFilters.push(nestedFilter);
+
+      // Also add a global inner hits definition for this nested document
       addInnerHits(esQuery.inner_hits,
         nestedPath,
         nestedPath,
@@ -364,6 +366,46 @@
         }
       });
     });
+
+    // Once everything is done (nesting filters, inner hits definitions) do some cleanup
+    esQuery.query.filtered.filter[logicalConnective] =
+      cleanESMatchAlls(queryFilters, logicalConnective, false);
+  }
+
+  // do some cleanup of unnecessary nested filter levels
+  // This prevents requiring that the nested paths be defined to fetch a data line
+  function cleanESMatchAlls(queryFilters, logicalConnective, alreadyNested) {
+    var cleanQueryFilters = [];
+
+    queryFilters.forEach(function(queryFilter) {
+      var isEmpty = false;
+      var cleanQueryFilter = queryFilter;
+      if (queryFilter.nested) {
+
+        // Clone the nested filter instead of referencing it
+        // because the one in inner_hits should no be impacted
+        // match_alls are actually useful in inner_hits to bring nested documents
+        cleanQueryFilter = {
+          nested: {
+            path: queryFilter.nested.path,
+            filter: {}
+          }
+        };
+        cleanQueryFilter.nested.filter[logicalConnective] =
+          cleanESMatchAlls(queryFilter.nested.filter[logicalConnective], logicalConnective, true);
+
+        isEmpty = !cleanQueryFilter.nested.filter[logicalConnective].length;
+      }
+
+      // filter is considered empty if it is a match_all filter
+      // or a nested with only match_all filters
+      isEmpty = (alreadyNested && queryFilter.match_all) || isEmpty;
+      if (!isEmpty) {
+        cleanQueryFilters.push(cleanQueryFilter);
+      }
+    });
+
+    return cleanQueryFilters;
   }
 
   // Add a inner_hits definition into the top level inner_hits object
