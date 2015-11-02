@@ -266,8 +266,8 @@
     });
 
     dataSource.fetch(function() {
-      var view = dataSource.view();
-      console.log(view);
+
+      //var view = dataSource.view();
       done();
     });
   });
@@ -743,7 +743,9 @@
       model: {
         esMapping: {
           properties: {
-            companyName: {
+
+            // Add a '-' in this key to test key transformation
+            "company-name": {
               type: "string"
             },
             addresses: {
@@ -782,7 +784,7 @@
           "hits": {
             "hits": [{
               "fields": {
-                "companyName": ["Telerik"]
+                "company-name": ["Telerik"]
               },
               "inner_hits": {
                 "addresses": {
@@ -827,7 +829,7 @@
               }
             }, {
               "fields": {
-                "companyName": ["MGDIS"]
+                "company-name": ["MGDIS"]
               },
               "inner_hits": {
                 "addresses": {
@@ -860,7 +862,7 @@
     dataSource.fetch(function() {
       var view = dataSource.view();
       equal(view.length, 4);
-      equal(view[0].companyName, "Telerik");
+      equal(view[0].company_name, "Telerik");
       equal(view[0].addresses_country, "Bulgaria");
       equal(view[0].addresses_telephones_value, "860.138.6580");
       done();

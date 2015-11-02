@@ -168,7 +168,8 @@
     prefix = prefix || "";
     Object.keys(mapping.properties || {}).forEach(function(propertyKey) {
       var property = mapping.properties[propertyKey];
-      var prefixedName = prefix ? prefix + "_" + propertyKey : propertyKey;
+      var curedPropertyKey = asKendoPropertyKey(propertyKey);
+      var prefixedName = prefix ? prefix + "_" + curedPropertyKey : curedPropertyKey;
 
       if (property.type === "nested") {
 
@@ -204,6 +205,7 @@
       }
     });
 
+    console.log(fields);
     return fields;
   };
 
@@ -814,6 +816,13 @@
       value = "" + value;
     }
     return value.replace("\\", "\\\\").replace(/[+\-&|!()\{}\[\]^:"~*?:\/ ]/g, "\\$&");
+  }
+
+  // Get a property key and transform it in a suitable key for kendo
+  // the constraint is that kendo needs a key suitable for javascript object's dot notation
+  // i.e a valid js identifier with alphanumeric chars + '_' and '$'
+  function asKendoPropertyKey(value) {
+    return value.replace(/[^a-zA-z0-9_$]/g, "_");
   }
 
   // Helper functions for conversion of query parameters from Kendo to ElasticSearch format
