@@ -197,6 +197,11 @@
         if (!field.esNestedPath) {
           field.type = field.type || property.type;
 
+          // Default is splitting data lines except for string fields
+          if (field.type !== "string") {
+            field.esMultiSplit = true;
+          }
+
           if (nestedPath) {
             field.esNestedPath = nestedPath;
           }
