@@ -57,6 +57,11 @@
                   esNestedPath: 'addresses',
                   esName: 'city'
                 },
+                addressComment: {
+                  type: 'string',
+                  esNestedPath: 'addresses',
+                  esName: 'comment.content'
+                },
                 telephoneValue: {
                   type: 'string',
                   esNestedPath: 'addresses.telephones',
@@ -111,6 +116,9 @@
         }, {
           field: 'addressCity',
           title: 'City'
+        }, {
+          field: 'addressComment',
+          title: 'Comment'
         }, {
           field: 'telephoneType',
           title: 'Phone type'

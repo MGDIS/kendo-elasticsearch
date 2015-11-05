@@ -10,7 +10,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["country", "city", "zipCode", "streetName"],
+        "required": ["country", "city", "zipCode", "streetName", "comment"],
         "properties": {
           "zipCode": {
             "type": "string",
@@ -31,6 +31,15 @@
           "streetPrefix": {
             "type": "string",
             "faker": "address.streetPrefix"
+          },
+          "comment": {
+            "type": "object",
+            "required": ["content"],
+            "properties": {
+              "content": {
+                "type": "string"
+              }
+            }
           },
           "telephones": {
             "type": "array",

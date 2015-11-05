@@ -125,5 +125,4 @@ See [the source code](./demos/mapping.html).
   - Add a note about ElasticSearch versions compatibility.
   - Add notes about kendo/ES functionalities mapping and the rational behind it
   - Combine with some external filter or query
-  - Using bucket aggregations to fill filters with dropdown list.
   - Move these todos into actual issues :)

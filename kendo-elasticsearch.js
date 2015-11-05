@@ -51,6 +51,22 @@
         if (_fields.hasOwnProperty(k)) {
           var field = _fields[k];
           field.esName = field.esName || k;
+          field.esNameSplit = field.esName.split(".");
+          if (!field.esSearchName) {
+            field.esSearchName = field.esName;
+            if (field.hasOwnProperty("esSearchSubField")) {
+              if (field.esSearchSubField) {
+                field.esSearchName += "." + field.esSearchSubField;
+              }
+            } else if (field.type === "string" &&
+              _model.esStringSubFields &&
+              _model.esStringSubFields.search) {
+              field.esSearchName += "." + _model.esStringSubFields.search;
+            }
+            if (field.esNestedPath) {
+              field.esSearchName = field.esNestedPath + "." + field.esSearchName;
+            }
+          }
           if (!field.esFilterName) {
             field.esFilterName = field.esName;
             if (field.hasOwnProperty("esFilterSubField")) {
@@ -102,14 +118,13 @@
         kendoFiltersToES(esParams, data.filter || [], _fields, sortParams);
 
         // Fetch only the required list of fields from ES
-        esParams.fields = Object.keys(_fields)
+        esParams._source = Object.keys(_fields)
           .filter(function(k) {
             return !_fields[k].esNestedPath && !_fields[k].esParentType && !_fields[k].esChildType;
           })
           .map(function(k) {
             return _fields[k].esName;
           });
-        esParams._source = false;
 
         // Transform kendo aggregations into ES aggregations
         esParams.aggs = kendoAggregationToES(data.aggregate, _fields);
@@ -347,7 +362,7 @@
           type: parentType,
           filter: combineESParams(parentESParams[parentType], logicalConnective),
           inner_hits: {
-            fields: parentFields[parentType],
+            _source: parentFields[parentType],
             size: 10000,
             sort: kendoSortToES(sort, fields, parentType)
           }
@@ -364,7 +379,7 @@
           type: childType,
           filter: combineESParams(childESParams[childType], logicalConnective),
           inner_hits: {
-            fields: childFields[childType],
+            _source: childFields[childType],
             size: 10000,
             sort: kendoSortToES(sort, fields, childType)
           }
@@ -440,7 +455,7 @@
         path: {}
       };
       innerHits[path].path[path] = {
-        fields: fields,
+        _source: fields,
         size: 10000,
         sort: sort,
         query: {
@@ -485,7 +500,7 @@
     // that should use classical search instead of regexp
     var field;
     if (kendoFilter.operator === "search") {
-      field = fields[kendoFilter.field].esName;
+      field = fields[kendoFilter.field].esSearchName;
     } else {
       field = fields[kendoFilter.field].esFilterName;
     }
@@ -773,28 +788,74 @@
     return groups;
   }
 
-  function esHitsToDataItems(hits, fields) {
+  // Mimic fetching values from _source as the 'fields' functionality
+  // would have done it.
+  // We do not use the native 'fields' due to this bug:
+  // https://github.com/elastic/elasticsearch/issues/14475
+  function getValuesFromSource(source, pathParts) {
+    var values;
+    var value = source[pathParts[0]];
+    if (value === undefined) {
+      return [];
+    }
+
+    if (pathParts.length > 1) {
+
+      // recursivity is not over, there remain some path parts
+      if ($.isArray(value)) {
+        value.forEach(function(valueItem) {
+          values = values.concat(getValuesFromSource(valueItem, pathParts.slice(1)));
+        });
+      } else {
+        values = getValuesFromSource(value, pathParts.slice(1));
+      }
+    } else {
+
+      // recursivity, we should be in a leaf value
+      if ($.isArray(value)) {
+        values = value;
+      } else {
+        values = [value];
+      }
+    }
+    return values;
+  }
+
+  // Transform hits from the ES query in to data items for kendo grid
+  // The difficulty is that hits can contain inner hits and that some
+  // fields can be multi-valued
+  function esHitsToDataItems(hits, fields, innerPath) {
     var dataItems = [];
     hits.forEach(function(hit) {
-      var hitFields = hit.fields || {};
+      var hitSource = hit._source || {};
       var dataItem = {};
 
       dataItem.id = [hit._id];
-      for (var k in fields) {
-        var values = hitFields[fields[k].esName];
-        if (values) {
-          if (fields[k].esMultiSplit) {
-            dataItem[k] = values;
-          } else {
-            dataItem[k] = values.join(fields[k].esMultiSeparator || ";");
-          }
+      Object.keys(fields).filter(function(fieldKey) {
+        var field = fields[fieldKey];
+
+        // Keep only the fields that are part of this nested/parent/child
+        if (innerPath === undefined) {
+          return !(field.esNestedPath || field.esChildType || field.esParentType);
+        } else {
+          return field.esNestedPath === innerPath ||
+            field.esChildType === innerPath ||
+            field.esParentType === innerPath;
         }
-      }
+      }).forEach(function(fieldKey) {
+        var field = fields[fieldKey];
+        var values = getValuesFromSource(hitSource, field.esNameSplit);
+        if (field.esMultiSplit) {
+          dataItem[fieldKey] = values;
+        } else {
+          dataItem[fieldKey] = values.join(field.esMultiSeparator || ";");
+        }
+      });
 
       var nestedItems = [];
       Object.keys(hit.inner_hits || {}).forEach(function(innerHitKey) {
         nestedItems = nestedItems
-          .concat(esHitsToDataItems(hit.inner_hits[innerHitKey].hits.hits, fields));
+          .concat(esHitsToDataItems(hit.inner_hits[innerHitKey].hits.hits, fields, innerHitKey));
       });
 
       if (nestedItems.length > 0) {
