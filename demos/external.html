@@ -17,7 +17,42 @@
   Filter on active attribute:
   <input type="checkbox" id="activeFilter"></input>
   <br>
-  <button onclick="drawGrid()">Refresh</button>
+  Filter with complex filters:
+  <br>
+  <textarea id="complexFilter" rows="10" cols="50">
+    {
+      "logic": "or",
+      "filters": [{
+        "logic": "and",
+        "filters": [
+          {
+            "field": "firstName",
+            "operator": "contains",
+            "value": "sid"
+          },{
+            "field": "active",
+            "operator": "eq",
+            "value": true
+          }
+        ]
+      }, {
+        "logic": "and",
+        "filters": [
+          {
+            "field": "firstName",
+            "operator": "contains",
+            "value": "har"
+          },{
+            "field": "active",
+            "operator": "eq",
+            "value": false
+          }
+        ]
+      }]
+    }
+  </textarea>
+  <br>
+  <button onclick="filter()">Apply complex filter</button>
 
   <div id='grid'></div>
 
@@ -90,8 +125,13 @@
         operator: 'eq',
         value: this.checked
       });
-      drawGrid();
+      //drawGrid();
     });
+
+    function filter() {
+      var complexFilter = $('#complexFilter').val();
+      dataSource.filter(JSON.parse(complexFilter));
+    }
 
     function drawGrid() {
       if (grid) {

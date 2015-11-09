@@ -127,9 +127,9 @@
       type: "POST",
       response: function(options) {
         var data = JSON.parse(options.data);
-        equal(data.query.filtered.filter.and.length, 1);
-        equal(data.query.filtered.filter.and[0].query.query_string.query,
-          " (companyName:mgdis*) ");
+        equal(data.query.filtered.filter.and.filters.length, 1);
+        equal(data.query.filtered.filter.and.filters[0].query.query_string.query,
+          "companyName:mgdis*");
         done();
       }
     });
@@ -156,9 +156,9 @@
       type: "POST",
       response: function(options) {
         var data = JSON.parse(options.data);
-        equal(data.query.filtered.filter.and.length, 1);
-        equal(data.query.filtered.filter.and[0].query.query_string.query,
-          " (companyName.lowercase:mgdis*) ");
+        equal(data.query.filtered.filter.and.filters.length, 1);
+        equal(data.query.filtered.filter.and.filters[0].query.query_string.query,
+          "companyName.lowercase:mgdis*");
         done();
       }
     });
@@ -183,9 +183,9 @@
       type: "POST",
       response: function(options) {
         var data = JSON.parse(options.data);
-        equal(data.query.filtered.filter.and.length, 1);
-        equal(data.query.filtered.filter.and[0].query.query_string.query,
-          " (companyName.lowercase:mgdis*) ");
+        equal(data.query.filtered.filter.and.filters.length, 1);
+        equal(data.query.filtered.filter.and.filters[0].query.query_string.query,
+          "companyName.lowercase:mgdis*");
         done();
       }
     });
@@ -504,14 +504,13 @@
       type: "POST",
       response: function(options) {
         var data = JSON.parse(options.data);
-        equal(data.query.filtered.filter.and[1].nested.path, "addresses");
-        equal(data.query.filtered.filter.and[1].nested.filter.and.length, 1);
+
+        equal(data.query.filtered.filter.and.filters[0].nested.path, "addresses");
         ok(data.inner_hits.hasOwnProperty("addresses"));
         ok(data.inner_hits.addresses.path.addresses.inner_hits
           .hasOwnProperty("addresses.telephones"));
-        ok(data.inner_hits.addresses.path.addresses.inner_hits["addresses.telephones"]
-          .path["addresses.telephones"].query.filtered.filter.and[0]
-          .hasOwnProperty("match_all"));
+        equal(data.inner_hits.addresses.path.addresses.inner_hits["addresses.telephones"]
+          .path["addresses.telephones"].query.filtered.filter.and.filters.length, 0);
         this.responseText = {
           "hits": {
             "hits": [{
@@ -594,7 +593,6 @@
     dataSource.fetch(function() {
       var view = dataSource.view();
       equal(view.length, 4);
-      console.log(view[0]);
       equal(view[0].companyName, "Telerik");
       equal(view[0].addressCountry, "Bulgaria");
       equal(view[0].telephoneValue, "860.138.6580");
@@ -602,291 +600,292 @@
     });
   });
 
-  test("supports fetching parent fields", function(assert) {
-    var done = assert.async();
+    test("supports fetching parent fields", function(assert) {
+      var done = assert.async();
 
-    var opts = $.extend(true, {}, baseOpts);
-    opts.pageSize = 2;
-    opts.schema = {
-      model: {
-        fields: {
-          firstName: {
-            type: "string",
-            esName: "name.firstName"
-          },
-          lastName: {
-            type: "string",
-            esName: "name.lastName"
-          },
-          companyName: {
-            type: "string",
-            esParentType: "organization",
-            esName: "companyName"
+      var opts = $.extend(true, {}, baseOpts);
+      opts.pageSize = 2;
+      opts.schema = {
+        model: {
+          fields: {
+            firstName: {
+              type: "string",
+              esName: "name.firstName"
+            },
+            lastName: {
+              type: "string",
+              esName: "name.lastName"
+            },
+            companyName: {
+              type: "string",
+              esParentType: "organization",
+              esName: "companyName"
+            }
           }
         }
-      }
-    };
-    opts.filter = {
-      field: "companyName",
-      operator: "neq",
-      value: "Telerik"
-    };
-    var dataSource = new ElasticSearchDataSource(opts);
+      };
+      opts.filter = {
+        field: "companyName",
+        operator: "neq",
+        value: "Telerik"
+      };
+      var dataSource = new ElasticSearchDataSource(opts);
 
-    $.mockjax({
-      url: "http://localhost:9200/_search",
-      type: "POST",
-      response: function(options) {
-        var data = JSON.parse(options.data);
-        equal(data.query.filtered.filter.and[1].has_parent.type, "organization");
-        this.responseText = {
-          "hits": {
-            "hits": [{
-              "_source": {
-                "name": {
-                  "lastName": ["Rath"],
-                  "firstName": ["Audrey"]
-                }
-              },
-              "inner_hits": {
-                "organization": {
-                  "hits": {
-                    "hits": [{
-                      "_source": {
-                        "companyName": ["MGDIS"]
-                      }
-                    }]
+      $.mockjax({
+        url: "http://localhost:9200/_search",
+        type: "POST",
+        response: function(options) {
+          var data = JSON.parse(options.data);
+          equal(data.query.filtered.filter.and.filters[0].has_parent.type, "organization");
+          this.responseText = {
+            "hits": {
+              "hits": [{
+                "_source": {
+                  "name": {
+                    "lastName": ["Rath"],
+                    "firstName": ["Audrey"]
                   }
-                }
-              }
-            }, {
-              "_source": {
-                "name": {
-                  "lastName": ["Williamson"],
-                  "firstName": ["Andreanne"]
-                }
-              },
-              "inner_hits": {
-                "organization": {
-                  "hits": {
-                    "hits": [{
-                      "_source": {
-                        "companyName": ["MGDIS"]
-                      }
-                    }]
-                  }
-                }
-              }
-            }]
-          }
-        };
-      }
-    });
-
-    dataSource.fetch(function() {
-      var view = dataSource.view();
-      equal(view[0].companyName, "MGDIS");
-      done();
-    });
-  });
-
-  test("supports fetching children fields", function(assert) {
-    var done = assert.async();
-
-    var opts = $.extend(true, {}, baseOpts);
-    opts.pageSize = 2;
-    opts.schema = {
-      model: {
-        fields: {
-          companyName: {
-            type: "string"
-          },
-          firstName: {
-            type: "string",
-            esChildType: "person",
-            esName: "name.firstName"
-          }
-        }
-      }
-    };
-    opts.filter = {
-      field: "firstName",
-      operator: "contains",
-      value: "Alban"
-    };
-    var dataSource = new ElasticSearchDataSource(opts);
-
-    $.mockjax({
-      url: "http://localhost:9200/_search",
-      type: "POST",
-      response: function(options) {
-        var data = JSON.parse(options.data);
-        equal(data.query.filtered.filter.and[1].has_child.type, "person");
-        this.responseText = {
-          "hits": {
-            "hits": [{
-              "_source": {
-                "companyName": "MGDIS"
-              },
-              "inner_hits": {
-                "person": {
-                  "hits": {
-                    "hits": [{
-                      "_source": {
-                        "name": {
-                          "firstName": "Alban"
+                },
+                "inner_hits": {
+                  "organization": {
+                    "hits": {
+                      "hits": [{
+                        "_source": {
+                          "companyName": ["MGDIS"]
                         }
-                      }
-                    }]
+                      }]
+                    }
                   }
                 }
-              }
-            }]
-          }
-        };
-      }
+              }, {
+                "_source": {
+                  "name": {
+                    "lastName": ["Williamson"],
+                    "firstName": ["Andreanne"]
+                  }
+                },
+                "inner_hits": {
+                  "organization": {
+                    "hits": {
+                      "hits": [{
+                        "_source": {
+                          "companyName": ["MGDIS"]
+                        }
+                      }]
+                    }
+                  }
+                }
+              }]
+            }
+          };
+        }
+      });
+
+      dataSource.fetch(function() {
+        var view = dataSource.view();
+        equal(view[0].companyName, "MGDIS");
+        done();
+      });
     });
 
-    dataSource.fetch(function() {
-      var view = dataSource.view();
-      equal(view[0].companyName, "MGDIS");
-      equal(view[0].firstName, "Alban");
-      done();
-    });
-  });
+    test("supports fetching children fields", function(assert) {
+      var done = assert.async();
 
-  test("supports parsing ES mapping", function(assert) {
-    var done = assert.async();
-
-    var opts = $.extend(true, {}, baseOpts);
-    opts.pageSize = 2;
-    opts.schema = {
-      model: {
-        esMapping: {
-          properties: {
-
-            // Add a '-' in this key to test key transformation
-            "company-name": {
+      var opts = $.extend(true, {}, baseOpts);
+      opts.pageSize = 2;
+      opts.schema = {
+        model: {
+          fields: {
+            companyName: {
               type: "string"
             },
-            addresses: {
-              type: "nested",
-              properties: {
-                country: {
-                  type: "string"
+            firstName: {
+              type: "string",
+              esChildType: "person",
+              esName: "name.firstName"
+            }
+          }
+        }
+      };
+      opts.filter = {
+        field: "firstName",
+        operator: "contains",
+        value: "Alban"
+      };
+      var dataSource = new ElasticSearchDataSource(opts);
+
+      $.mockjax({
+        url: "http://localhost:9200/_search",
+        type: "POST",
+        response: function(options) {
+          var data = JSON.parse(options.data);
+          equal(data.query.filtered.filter.and.filters[0].has_child.type, "person");
+          this.responseText = {
+            "hits": {
+              "hits": [{
+                "_source": {
+                  "companyName": "MGDIS"
                 },
-                telephones: {
-                  type: "nested",
-                  properties: {
-                    value: "string"
+                "inner_hits": {
+                  "person": {
+                    "hits": {
+                      "hits": [{
+                        "_source": {
+                          "name": {
+                            "firstName": "Alban"
+                          }
+                        }
+                      }]
+                    }
+                  }
+                }
+              }]
+            }
+          };
+        }
+      });
+
+      dataSource.fetch(function() {
+        var view = dataSource.view();
+        equal(view[0].companyName, "MGDIS");
+        equal(view[0].firstName, "Alban");
+        done();
+      });
+    });
+
+    test("supports parsing ES mapping", function(assert) {
+      var done = assert.async();
+
+      var opts = $.extend(true, {}, baseOpts);
+      opts.pageSize = 2;
+      opts.schema = {
+        model: {
+          esMapping: {
+            properties: {
+
+              // Add a '-' in this key to test key transformation
+              "company-name": {
+                type: "string"
+              },
+              addresses: {
+                type: "nested",
+                properties: {
+                  country: {
+                    type: "string"
+                  },
+                  telephones: {
+                    type: "nested",
+                    properties: {
+                      value: "string"
+                    }
                   }
                 }
               }
             }
           }
         }
-      }
-    };
-    opts.filter = {
-      field: "addresses_country",
-      operator: "eq",
-      value: "Bulgaria"
-    };
-    var dataSource = new ElasticSearchDataSource(opts);
+      };
+      opts.filter = {
+        field: "addresses_country",
+        operator: "eq",
+        value: "Bulgaria"
+      };
+      var dataSource = new ElasticSearchDataSource(opts);
 
-    $.mockjax({
-      url: "http://localhost:9200/_search",
-      type: "POST",
-      response: function(options) {
-        var data = JSON.parse(options.data);
-        equal(data.query.filtered.filter.and[1].nested.path, "addresses");
-        ok(data.inner_hits.hasOwnProperty("addresses"));
-        this.responseText = {
-          "hits": {
-            "hits": [{
-              "_source": {
-                "company-name": ["Telerik"]
-              },
-              "inner_hits": {
-                "addresses": {
-                  "hits": {
-                    "hits": [{
-                      "_source": {
-                        "country": ["Bulgaria"]
-                      },
-                      "inner_hits": {
-                        "addresses.telephones": {
-                          "hits": {
-                            "hits": [{
-                              "_source": {
-                                "value": ["860.138.6580"]
-                              }
-                            }, {
-                              "_source": {
-                                "value": ["(979) 154-0643 x246"]
-                              }
-                            }]
+      $.mockjax({
+        url: "http://localhost:9200/_search",
+        type: "POST",
+        response: function(options) {
+          var data = JSON.parse(options.data);
+          equal(data.query.filtered.filter.and.filters[0].nested.path, "addresses");
+          ok(data.inner_hits.hasOwnProperty("addresses"));
+          this.responseText = {
+            "hits": {
+              "hits": [{
+                "_source": {
+                  "company-name": ["Telerik"]
+                },
+                "inner_hits": {
+                  "addresses": {
+                    "hits": {
+                      "hits": [{
+                        "_source": {
+                          "country": ["Bulgaria"]
+                        },
+                        "inner_hits": {
+                          "addresses.telephones": {
+                            "hits": {
+                              "hits": [{
+                                "_source": {
+                                  "value": ["860.138.6580"]
+                                }
+                              }, {
+                                "_source": {
+                                  "value": ["(979) 154-0643 x246"]
+                                }
+                              }]
+                            }
                           }
                         }
-                      }
-                    }, {
-                      "_source": {
-                        "country": ["USA"]
-                      },
-                      "inner_hits": {
-                        "addresses.telephones": {
-                          "hits": {
-                            "hits": [{
-                              "_source": {
-                                "value": ["(516) 982-7971"]
-                              }
-                            }]
+                      }, {
+                        "_source": {
+                          "country": ["USA"]
+                        },
+                        "inner_hits": {
+                          "addresses.telephones": {
+                            "hits": {
+                              "hits": [{
+                                "_source": {
+                                  "value": ["(516) 982-7971"]
+                                }
+                              }]
+                            }
                           }
                         }
-                      }
-                    }]
+                      }]
+                    }
                   }
                 }
-              }
-            }, {
-              "fields": {
-                "company-name": ["MGDIS"]
-              },
-              "inner_hits": {
-                "addresses": {
-                  "hits": {
-                    "hits": [{
-                      "_source": {
-                        "country": ["France"]
-                      },
-                      "inner_hits": {
-                        "addresses.telephones": {
-                          "hits": {
-                            "hits": [{
-                              "_source": {
-                                "value": ["027-143-6935"]
-                              }
-                            }]
+              }, {
+                "fields": {
+                  "company-name": ["MGDIS"]
+                },
+                "inner_hits": {
+                  "addresses": {
+                    "hits": {
+                      "hits": [{
+                        "_source": {
+                          "country": ["France"]
+                        },
+                        "inner_hits": {
+                          "addresses.telephones": {
+                            "hits": {
+                              "hits": [{
+                                "_source": {
+                                  "value": ["027-143-6935"]
+                                }
+                              }]
+                            }
                           }
                         }
-                      }
-                    }]
+                      }]
+                    }
                   }
                 }
-              }
-            }]
-          }
-        };
-      }
+              }]
+            }
+          };
+        }
+      });
+
+      dataSource.fetch(function() {
+        var view = dataSource.view();
+        equal(view.length, 4);
+        equal(view[0].company_name, "Telerik");
+        equal(view[0].addresses_country, "Bulgaria");
+        equal(view[0].addresses_telephones_value, "860.138.6580");
+        done();
+      });
     });
 
-    dataSource.fetch(function() {
-      var view = dataSource.view();
-      equal(view.length, 4);
-      equal(view[0].company_name, "Telerik");
-      equal(view[0].addresses_country, "Bulgaria");
-      equal(view[0].addresses_telephones_value, "860.138.6580");
-      done();
-    });
-  });
 }());
