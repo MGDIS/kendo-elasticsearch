@@ -77,12 +77,12 @@
           },
 
           group: {
-            field: "companyName",
+            field: "addressCountry",
             dir: "asc"
           },
 
           sort: {
-            field: 'companyName',
+            field: 'addressCountry',
             dir: 'asc'
           }
         }),
@@ -112,7 +112,8 @@
           title: 'Company name'
         }, {
           field: 'addressCountry',
-          title: 'Country'
+          title: 'Country',
+          groupHeaderTemplate: "Country: #=value#, Count: #=count#",
         }, {
           field: 'addressCity',
           title: 'City'

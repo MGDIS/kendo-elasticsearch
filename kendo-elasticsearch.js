@@ -93,6 +93,9 @@
               _model.esStringSubFields.agg) {
               field.esAggName += "." + _model.esStringSubFields.agg;
             }
+            if (field.esNestedPath) {
+              field.esAggName = field.esNestedPath + "." + field.esAggName;
+            }
           }
         }
       }
@@ -517,7 +520,21 @@
   function kendoGroupToES(group, fields) {
     var field = fields[group.field];
     var aggs = {};
-    var groupAgg = aggs[group.field + "_group"] = {};
+    var groupAgg;
+    var missingAgg;
+    if (field.esNestedPath) {
+      aggs[field.esNestedPath + "_nested"] = aggs[field.esNestedPath + "_nested"] || {
+        nested: {
+          path: field.esNestedPath
+        },
+        aggs: {}
+      };
+      groupAgg = aggs[field.esNestedPath + "_nested"].aggs[group.field + "_group"] = {};
+      missingAgg = aggs[field.esNestedPath + "_nested"].aggs[group.field + "_missing"] = {};
+    } else {
+      groupAgg = aggs[group.field + "_group"] = {};
+      missingAgg = aggs[group.field + "_missing"] = {};
+    }
 
     // Look for a aggregate defined on group field
     // Used to customize the bucket aggregation
@@ -552,10 +569,8 @@
       };
     }
 
-    var missingAgg = aggs[group.field + "_missing"] = {
-      missing: {
-        field: field.esAggName
-      }
+    missingAgg.missing = {
+      field: field.esAggName
     };
 
     var esGroupAggregates = group.aggregates ? kendoAggregationToES(groupAggregates, fields) : {};
@@ -581,49 +596,68 @@
     return aggregates;
   }
 
+  // Extraction aggregations from ES query result that will be used to group
+  // data items
+  function parseGroupAggregations(aggregations) {
+    var groupAggregations = Object.keys(aggregations).filter(function(aggKey) {
+      return aggKey.substr(aggKey.length - 6) === "_group";
+    }).map(function(aggKey) {
+      var fieldKey = aggKey.substr(0, aggKey.length - 6);
+      return {
+        group: aggregations[aggKey],
+        missing: aggregations[fieldKey + "_missing"],
+        fieldKey: fieldKey
+      };
+    });
+
+    // extract other group aggregations from nested aggregations
+    Object.keys(aggregations).filter(function(aggKey) {
+      return aggKey.substr(aggKey.length - 7) === "_nested";
+    }).forEach(function(aggKey) {
+      groupAggregations =
+        groupAggregations.concat(parseGroupAggregations(aggregations[aggKey]));
+    });
+
+    return groupAggregations;
+  }
+
   // Transform ES bucket aggregations into kendo groups of data items
   // See doc here for format of groups: http://docs.telerik.com/KENDO-UI/api/javascript/data/datasource#configuration-schema.groups
   function esAggsToKendoGroups(dataItems, aggregations) {
     var allGroups = [];
     if (aggregations) {
+      var groupAggregations = parseGroupAggregations(aggregations);
 
       // Find aggregations that are grouping aggregations (ie buckets in ES)
-      Object.keys(aggregations).forEach(function(aggKey) {
+      groupAggregations.forEach(function(groupAggregation) {
         var groups = [];
-        var suffixLength = "_group".length;
-        if (aggKey.substr(aggKey.length - suffixLength) === "_group") {
-          var fieldKey = aggKey.substr(0, aggKey.length - suffixLength);
 
-          // First extract kendo groups definitions from the buckets
-          var groupAggregation = aggregations[aggKey];
-          var missingAggregation = aggregations[fieldKey + "_missing"];
-          var groupDefs = esAggToKendoGroups(
-            groupAggregation,
-            missingAggregation,
-            fieldKey);
+        var groupDefs = esAggToKendoGroups(
+          groupAggregation.group,
+          groupAggregation.missing,
+          groupAggregation.fieldKey);
 
-          // Then distribute the data items in the groups
-          groups = fillDataItemsInGroups(groupDefs, dataItems, fieldKey);
+        // Then distribute the data items in the groups
+        groups = fillDataItemsInGroups(groupDefs, dataItems, groupAggregation.fieldKey);
 
-          // Case when there is subgroups. Solve it recursively.
-          var hasSubgroups = false;
-          if (groupAggregation.buckets && groupAggregation.buckets[0]) {
-            Object.keys(groupAggregation.buckets[0]).forEach(function(bucketKey) {
-              if (bucketKey.substr(bucketKey.length - suffixLength) === "_group") {
-                hasSubgroups = true;
-              }
-            });
-          }
-          groups.forEach(function(group) {
-            if (hasSubgroups) {
-              group.hasSubgroups = true;
-              group.items = esAggsToKendoGroups(group.items, group.bucket);
+        // Case when there is subgroups. Solve it recursively.
+        var hasSubgroups = false;
+        if (groupAggregation.buckets && groupAggregation.buckets[0]) {
+          Object.keys(groupAggregation.buckets[0]).forEach(function(bucketKey) {
+            if (bucketKey.substr(bucketKey.length - suffixLength) === "_group") {
+              hasSubgroups = true;
             }
-            delete group.bucket;
           });
-
-          allGroups = allGroups.concat(groups);
         }
+        groups.forEach(function(group) {
+          if (hasSubgroups) {
+            group.hasSubgroups = true;
+            group.items = esAggsToKendoGroups(group.items, group.bucket);
+          }
+          delete group.bucket;
+        });
+
+        allGroups = allGroups.concat(groups);
       });
     }
 
