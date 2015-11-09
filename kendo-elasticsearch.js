@@ -284,7 +284,7 @@
       filters = [kendoFilters];
     } else if (kendoFilters.logic) {
       logicalConnective = kendoFilters.logic;
-      filters = kendoFilters.filters;
+      filters = kendoFilters.filters || [];
     } else if (kendoFilters.constructor == Array) {
       filters = kendoFilters;
     } else {
@@ -295,7 +295,7 @@
 
     filters.forEach(function(filter) {
       if (filter.logic) {
-        esFilters.push(kendoFiltersToES(filter.filters || [], fields));
+        esFilters.push(kendoFiltersToES(filter, fields));
       } else {
         var field = fields[filter.field];
         if (!field) {
