@@ -642,9 +642,9 @@
 
         // Case when there is subgroups. Solve it recursively.
         var hasSubgroups = false;
-        if (groupAggregation.buckets && groupAggregation.buckets[0]) {
-          Object.keys(groupAggregation.buckets[0]).forEach(function(bucketKey) {
-            if (bucketKey.substr(bucketKey.length - suffixLength) === "_group") {
+        if (groupAggregation.group.buckets && groupAggregation.group.buckets[0]) {
+          Object.keys(groupAggregation.group.buckets[0]).forEach(function(bucketKey) {
+            if (bucketKey.substr(bucketKey.length - 6) === "_group") {
               hasSubgroups = true;
             }
           });
