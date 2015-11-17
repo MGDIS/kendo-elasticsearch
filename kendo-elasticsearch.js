@@ -241,6 +241,11 @@
         if (!field.esNestedPath) {
           field.type = field.type || property.type;
 
+          // ES supports a variety of numeric types. In JSON and kendo it is simply 'number'.
+          if (["float", "double", "integer", "long", "short", "byte"].indexOf(field.type) !== -1) {
+            field.type = "number";
+          }
+
           // Default is splitting data lines except for string fields
           if (field.type !== "string") {
             field.esMultiSplit = true;
