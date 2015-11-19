@@ -743,7 +743,7 @@
   // We do not use the native 'fields' due to this bug:
   // https://github.com/elastic/elasticsearch/issues/14475
   function getValuesFromSource(source, pathParts) {
-    var values;
+    var values = [];
     var value = source[pathParts[0]];
     if (value === undefined) {
       return [];
@@ -795,10 +795,12 @@
       }).forEach(function(fieldKey) {
         var field = fields[fieldKey];
         var values = getValuesFromSource(hitSource, field.esNameSplit);
-        if (field.esMultiSplit) {
-          dataItem[fieldKey] = values;
-        } else {
-          dataItem[fieldKey] = values.join(field.esMultiSeparator || ";");
+        if(values){
+          if (field.esMultiSplit) {
+            dataItem[fieldKey] = values;
+          } else {
+            dataItem[fieldKey] = values.join(field.esMultiSeparator || ";");
+          }
         }
       });
 
