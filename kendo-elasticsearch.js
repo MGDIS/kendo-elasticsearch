@@ -413,22 +413,24 @@
   function getESInnerHitsFilter(nestedPath, subType, filter) {
     filter = $.extend(true, {}, filter);
     var logicFilter = filter.or || filter.and;
-    logicFilter.filters = logicFilter.filters.filter(function(childFilter) {
-      return childFilter.and || childFilter.or ||
-        (childFilter.nested && childFilter.nested.path === nestedPath) ||
-        (childFilter.has_child && childFilter.has_child.type === subType) ||
-        (childFilter.has_parent && childFilter.has_parent.type === subType);
-    }).map(function(childFilter) {
-      if (childFilter.nested) {
-        return childFilter.nested.filter;
-      } else if (childFilter.has_child) {
-        return childFilter.has_child.filter;
-      } else if (childFilter.has_parent) {
-        return childFilter.has_parent.filter;
-      } else {
-        return getESInnerHitsFilter(nestedPath, childFilter);
-      }
-    });
+    if (logicFilter) {
+      logicFilter.filters = logicFilter.filters.filter(function(childFilter) {
+        return childFilter.and || childFilter.or ||
+          (childFilter.nested && childFilter.nested.path === nestedPath) ||
+          (childFilter.has_child && childFilter.has_child.type === subType) ||
+          (childFilter.has_parent && childFilter.has_parent.type === subType);
+      }).map(function(childFilter) {
+        if (childFilter.nested) {
+          return childFilter.nested.filter;
+        } else if (childFilter.has_child) {
+          return childFilter.has_child.filter;
+        } else if (childFilter.has_parent) {
+          return childFilter.has_parent.filter;
+        } else {
+          return getESInnerHitsFilter(nestedPath, childFilter);
+        }
+      });
+    }
     return filter;
   }
 
