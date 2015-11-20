@@ -797,7 +797,7 @@
       }).forEach(function(fieldKey) {
         var field = fields[fieldKey];
         var values = getValuesFromSource(hitSource, field.esNameSplit);
-        if(values){
+        if (values) {
           if (field.esMultiSplit) {
             dataItem[fieldKey] = values;
           } else {
@@ -806,22 +806,28 @@
         }
       });
 
-      var nestedItems = [];
+      // Multiply and fill items based on nesting levels
+      var splittedItems = [dataItem];
       Object.keys(hit.inner_hits || {}).forEach(function(innerHitKey) {
-        nestedItems = nestedItems
-          .concat(esHitsToDataItems(hit.inner_hits[innerHitKey].hits.hits, fields, innerHitKey));
+        var nestedItems =
+          esHitsToDataItems(hit.inner_hits[innerHitKey].hits.hits, fields, innerHitKey);
+        var newSplittedDataItems = [];
+        splittedItems.forEach(function(splittedItem) {
+          if (nestedItems.length) {
+            nestedItems.forEach(function(nestedItem) {
+              Object.keys(splittedItem).forEach(function(key) {
+                nestedItem[key] = splittedItem[key];
+              });
+              newSplittedDataItems.push(nestedItem);
+            });
+          } else {
+            newSplittedDataItems.push(splittedItem);
+          }
+        });
+        splittedItems = newSplittedDataItems;
       });
 
-      if (nestedItems.length > 0) {
-        nestedItems.forEach(function(nestedItem) {
-          Object.keys(dataItem).forEach(function(key) {
-            nestedItem[key] = dataItem[key];
-          });
-        });
-        dataItems = dataItems.concat(nestedItems);
-      } else {
-        dataItems.push(dataItem);
-      }
+      dataItems = dataItems.concat(splittedItems);
 
     });
     return splitMultiValues(dataItems);

@@ -681,6 +681,153 @@
     });
   });
 
+  test("supports multiple nested objects", function(assert) {
+    var done = assert.async();
+
+    var opts = $.extend(true, {}, baseOpts);
+    opts.pageSize = 2;
+    opts.schema = {
+      model: {
+        fields: {
+          companyName: {
+            type: "string"
+          },
+          addressCountry: {
+            type: "string",
+            esNestedPath: "addresses",
+            esName: "country"
+          },
+          contactName: {
+            type: "string",
+            esNestedPath: "contacts",
+            esName: "name"
+          }
+        }
+      }
+    };
+    var dataSource = new ElasticSearchDataSource(opts);
+
+    $.mockjax({
+      url: "http://localhost:9200/_search",
+      type: "POST",
+      response: function(options) {
+        var data = JSON.parse(options.data);
+
+        ok(data.inner_hits.hasOwnProperty("addresses"));
+        ok(data.inner_hits.hasOwnProperty("contacts"));
+        this.responseText = {
+          "hits": {
+            "hits": [{
+              "_source": {
+                "companyName": "MGDIS"
+              },
+              "inner_hits": {
+                "addresses": {
+                  "hits": {
+                    "hits": [{
+                      "_source": {
+                        "country": ["France"]
+                      }
+                    }]
+                  }
+                },
+                "contacts": {
+                  "hits": {
+                    "hits": [{
+                      "_source": {
+                        "name": "Alban Mouton"
+                      }
+                    }]
+                  }
+                }
+              }
+            }]
+          }
+        };
+      }
+    });
+
+    dataSource.fetch(function() {
+      var view = dataSource.view();
+      equal(view.length, 1);
+      equal(view[0].companyName, "MGDIS");
+      equal(view[0].addressCountry, "France");
+      equal(view[0].contactName, "Alban Mouton");
+      done();
+    });
+  });
+
+  test("supports empty nested items", function(assert) {
+    var done = assert.async();
+
+    var opts = $.extend(true, {}, baseOpts);
+    opts.pageSize = 2;
+    opts.schema = {
+      model: {
+        fields: {
+          companyName: {
+            type: "string"
+          },
+          addressCountry: {
+            type: "string",
+            esNestedPath: "addresses",
+            esName: "country"
+          }
+        }
+      }
+    };
+    var dataSource = new ElasticSearchDataSource(opts);
+
+    $.mockjax({
+      url: "http://localhost:9200/_search",
+      type: "POST",
+      response: function(options) {
+        var data = JSON.parse(options.data);
+
+        ok(data.inner_hits.hasOwnProperty("addresses"));
+        this.responseText = {
+          "hits": {
+            "hits": [{
+              "_source": {
+                "companyName": "MGDIS"
+              },
+              "inner_hits": {
+                "addresses": {
+                  "hits": {
+                    "hits": [{
+                      "_source": {
+                        "country": ["France"]
+                      }
+                    }]
+                  }
+                }
+              }
+            }, {
+              "_source": {
+                "companyName": "Telerik"
+              },
+              "inner_hits": {
+                "addresses": {
+                  "hits": {
+                    "hits": []
+                  }
+                }
+              }
+            }]
+          }
+        };
+      }
+    });
+
+    dataSource.fetch(function() {
+      var view = dataSource.view();
+      equal(view.length, 2);
+      equal(view[0].companyName, "MGDIS");
+      equal(view[1].companyName, "Telerik");
+      done();
+    });
+  });
+
   test("supports grouping on a nested field", function(assert) {
     var done = assert.async();
 
