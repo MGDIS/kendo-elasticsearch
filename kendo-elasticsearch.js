@@ -799,7 +799,11 @@
         var values = getValuesFromSource(hitSource, field.esNameSplit);
         if (values) {
           if (field.esMultiSplit) {
-            dataItem[fieldKey] = values;
+            if (values && values.length) {
+              dataItem[fieldKey] = values;
+            } else {
+              dataItem[fieldKey] = [null];
+            }
           } else {
             dataItem[fieldKey] = values.join(field.esMultiSeparator || ";");
           }

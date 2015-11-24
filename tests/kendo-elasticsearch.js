@@ -72,11 +72,11 @@
           "max_score": 1.0,
           "hits": [{
             "_source": {
-              "companyName": ["MGDIS"]
+              "companyName": "MGDIS"
             }
           }, {
             "_source": {
-              "companyName": ["Telerik"]
+              "companyName": "Telerik"
             }
           }]
         }
@@ -87,6 +87,52 @@
       var view = dataSource.view();
       equal(view[0].companyName, "MGDIS");
       equal(view[1].companyName, "Telerik");
+      done();
+    });
+  });
+
+  test("parse result with absent fields and multi-split option", function(assert) {
+    var done = assert.async();
+
+    var opts = $.extend(true, {}, baseOpts);
+    opts.pageSize = 2;
+    opts.schema.model.fields.legalName = {
+      type: "string",
+      esMultiSplit: true
+    };
+    opts.schema.model.fields.boolTest = {
+      type: "boolean"
+    };
+    var dataSource = new ElasticSearchDataSource(opts);
+
+    $.mockjax({
+      url: "http://localhost:9200/_search",
+      type: "POST",
+      responseText: {
+        "hits": {
+          "total": 11002,
+          "max_score": 1.0,
+          "hits": [{
+            "_source": {
+              "companyName": "Telerik"
+            }
+          }, {
+            "_source": {
+              "companyName": "MGDIS",
+              "legalName": "mgdis",
+              "booltTest": false
+            }
+          }]
+        }
+      }
+    });
+
+    dataSource.fetch(function() {
+      var view = dataSource.view();
+      equal(view[0].companyName, "Telerik");
+      equal(view[1].companyName, "MGDIS");
+      equal(view[1].legalName, "mgdis");
+      equal(view[1].boolTest, false);
       done();
     });
   });
