@@ -57,10 +57,20 @@
                   esNestedPath: 'addresses',
                   esName: 'city'
                 },
-                addressComment: {
+                addressCommentContent: {
                   type: 'string',
                   esNestedPath: 'addresses',
                   esName: 'comment.content'
+                },
+                addressCommentDate: {
+                  type: 'date',
+                  esNestedPath: 'addresses',
+                  esName: 'comment.date'
+                },
+                addressCommentDateYear: {
+                  type: 'date',
+                  esNestedPath: 'addresses',
+                  esName: 'comment.date'
                 },
                 telephoneValue: {
                   type: 'string',
@@ -76,9 +86,20 @@
             }
           },
 
-          group: {
+          /*group: {
             field: "addressCountry",
             dir: "asc"
+          },*/
+          group: {
+            field: "addressCommentDateYear",
+            dir: "desc",
+            aggregates: [{
+                field: "addressCommentDateYear",
+                aggregate: "date_histogram",
+                interval: "year"
+              }]
+              // see https://www.elastic.co/guide/en/elasticsearch/reference/2.0/search-aggregations-bucket-datehistogram-aggregation.html
+              // if defined the bucket aggregation will be a date_histogram aggregation
           },
 
           sort: {
@@ -118,8 +139,11 @@
           field: 'addressCity',
           title: 'City'
         }, {
-          field: 'addressComment',
+          field: 'addressCommentContent',
           title: 'Comment'
+        }, {
+          field: 'addressCommentDate',
+          title: 'Comment date'
         }, {
           field: 'telephoneType',
           title: 'Phone type'

@@ -34,10 +34,14 @@
           },
           "comment": {
             "type": "object",
-            "required": ["content"],
+            "required": ["content", "date"],
             "properties": {
               "content": {
                 "type": "string"
+              },
+              "date": {
+                "type": "string",
+                "format": "date-time"
               }
             }
           },

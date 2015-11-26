@@ -419,7 +419,8 @@
             esName: "name.lastName"
           },
           birthDate: {
-            type: "date"
+            type: "date",
+            esMultiSplit: false
           }
         }
       }
@@ -462,11 +463,18 @@
                   "firstName": "Hélène"
                 }
               }
+            }, {
+              "_source": {
+                "name": {
+                  "lastName": "Mouton",
+                  "firstName": "Malo"
+                }
+              }
             }]
           },
           "aggregations": {
             "birthDate_missing": {
-              "doc_count": 0
+              "doc_count": 1
             },
             "birthDate_group": {
               "buckets": [{
@@ -490,7 +498,167 @@
 
     dataSource.fetch(function() {
       var view = dataSource.view();
-      ok(view[0].hasOwnProperty("items"));
+      equal(view[0].field, "birthDate");
+      equal(view[0].value.toISOString(), "1983-01-01T00:00:00.000Z");
+      equal(view[0].items.length, 1);
+      equal(view[1].field, "birthDate");
+      equal(view[1].value.toISOString(), "1980-01-01T00:00:00.000Z");
+      equal(view[1].items.length, 1);
+      equal(view[2].field, "birthDate");
+      equal(view[2].value, null);
+      equal(view[1].items.length, 1);
+      done();
+    });
+  });
+
+  test("groups by a date histogram on a nested field", function(assert) {
+    var done = assert.async();
+
+    var opts = $.extend(true, {}, baseOpts);
+    opts.schema.model.fields.companyName.esAggSubField = "raw";
+    opts.pageSize = 2;
+    opts.schema = {
+      model: {
+        fields: {
+          firstName: {
+            type: "string",
+            esFilterSubField: "lowercase",
+            esName: "name.firstName"
+          },
+          lastName: {
+            type: "string",
+            esFilterSubField: "lowercase",
+            esName: "name.lastName"
+          },
+          curriculumItemDate: {
+            type: "date",
+            esNestedPath: "curriculum",
+            esName: "date",
+            esMultiSplit: false
+          },
+          curriculumItemLabel: {
+            type: "string",
+            esNestedPath: "curriculum",
+            esName: "label"
+          }
+        }
+      }
+    };
+    opts.group = {
+      field: "curriculumItemDate",
+      dir: "desc",
+      aggregates: [{
+        field: "curriculumItemDate",
+        aggregate: "date_histogram",
+        interval: "year"
+      }]
+    };
+
+    var dataSource = new ElasticSearchDataSource(opts);
+
+    $.mockjax({
+      url: "http://localhost:9200/_search",
+      type: "POST",
+      response: function(options) {
+        var data = JSON.parse(options.data);
+        ok(data.aggs.hasOwnProperty("curriculum_nested"));
+        ok(data.aggs.curriculum_nested.aggs.hasOwnProperty("curriculumItemDate_group"));
+        ok(data.aggs.curriculum_nested.aggs.curriculumItemDate_group
+          .hasOwnProperty("date_histogram"));
+        ok(data.aggs.curriculum_nested.aggs.hasOwnProperty("curriculumItemDate_missing"));
+        this.responseText = {
+          "hits": {
+            "hits": [{
+              "_source": {
+                "name": {
+                  "lastName": "Mouton",
+                  "firstName": "Alban"
+                }
+              },
+              "inner_hits": {
+                "curriculum": {
+                  "hits": {
+                    "hits": [{
+                      "_source": {
+                        "date": "1983-11-28T00:00:00.000Z",
+                        "label": "birth"
+                      }
+                    }]
+                  }
+                }
+              }
+            }, {
+              "_source": {
+                "name": {
+                  "lastName": "Cabillic",
+                  "firstName": "Hélène"
+                }
+              },
+              "inner_hits": {
+                "curriculum": {
+                  "hits": {
+                    "hits": [{
+                      "_source": {
+                        "date": "1980-10-23T00:00:00.000Z",
+                        "label": "birth"
+                      }
+                    }]
+                  }
+                }
+              }
+            }, {
+              "_source": {
+                "name": {
+                  "lastName": "Mouton",
+                  "firstName": "Malo"
+                }
+              },
+              "inner_hits": {
+                "curriculum": {
+                  "hits": {
+                    "hits": []
+                  }
+                }
+              }
+            }]
+          },
+          "aggregations": {
+            "curriculum_nested": {
+              "curriculumItemDate_missing": {
+                "doc_count": 1
+              },
+              "curriculumItemDate_group": {
+                "buckets": [{
+                  "key_as_string": "1980-01-01T00:00:00.000Z",
+                  "doc_count": 1
+                }, {
+                  "key_as_string": "1981-01-01T00:00:00.000Z",
+                  "doc_count": 0
+                }, {
+                  "key_as_string": "1982-01-01T00:00:00.000Z",
+                  "doc_count": 0
+                }, {
+                  "key_as_string": "1983-01-01T00:00:00.000Z",
+                  "doc_count": 1
+                }]
+              }
+            }
+          }
+        };
+      }
+    });
+
+    dataSource.fetch(function() {
+      var view = dataSource.view();
+      equal(view[0].field, "curriculumItemDate");
+      equal(view[0].value.toISOString(), "1983-01-01T00:00:00.000Z");
+      equal(view[0].items.length, 1);
+      equal(view[1].field, "curriculumItemDate");
+      equal(view[1].value.toISOString(), "1980-01-01T00:00:00.000Z");
+      equal(view[1].items.length, 1);
+      equal(view[2].field, "curriculumItemDate");
+      equal(view[2].value, null);
+      equal(view[1].items.length, 1);
       done();
     });
   });
