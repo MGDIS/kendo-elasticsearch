@@ -47,12 +47,13 @@
                   filter: 'lowercase',
                   agg: 'raw'
                 },
-                esMapping: mapping
+                esMapping: mapping,
+                esMappingKey: 'organization'
               }
             },
 
             group: {
-              field: "companyName",
+              field: "addresses_city",
               dir: "asc"
             },
 

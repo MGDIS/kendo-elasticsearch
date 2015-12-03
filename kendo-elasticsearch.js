@@ -32,7 +32,8 @@
       }
       if (_model.esMapping) {
         _model.fields = _model.fields || {};
-        data.ElasticSearchDataSource.kendoFieldsFromESMapping(_model.esMapping, _model.fields);
+        data.ElasticSearchDataSource.kendoFieldsFromESMapping(
+          _model.esMapping, _model.esMappingKey, _model.fields);
       }
 
       var _fields = this._fields = _model.fields;
@@ -52,6 +53,10 @@
           var field = _fields[k];
           field.esName = field.esName || k;
           field.esNameSplit = field.esName.split(".");
+          field.esFullNestedPath = field.esFullNestedPath || field.esNestedPath;
+          if (_model.esMappingKey) {
+            field.esFullNestedPath = _model.esMappingKey + "." + field.esFullNestedPath;
+          }
           if (!field.esSearchName) {
             field.esSearchName = field.esName;
             if (field.hasOwnProperty("esSearchSubField")) {
@@ -94,7 +99,7 @@
               field.esAggName += "." + _model.esStringSubFields.agg;
             }
             if (field.esNestedPath) {
-              field.esAggName = field.esNestedPath + "." + field.esAggName;
+              field.esAggName = field.esFullNestedPath + "." + field.esAggName;
             }
           }
         }
@@ -144,7 +149,12 @@
 
         // Add a top level inner_hits definition for nested/parent/child docs
         esParams.inner_hits = getESInnerHits(
-          _nestedFields, _subTypes, esParams.sort, esParams.query.filtered.filter);
+          _nestedFields,
+          _model.esMappingKey,
+          _subTypes,
+          esParams.sort,
+          esParams.query.filtered.filter
+        );
 
         // Fetch only the required list of fields from ES
         esParams._source = Object.keys(_fields)
@@ -207,7 +217,7 @@
   // This utility function is exposed as it can be interesting to use it before instantiating
   // the actual datasource
   data.ElasticSearchDataSource.kendoFieldsFromESMapping = function(
-    mapping, fields, prefix, esPrefix, nestedPath) {
+    mapping, mappingKey, fields, prefix, esPrefix, nestedPath) {
     fields = fields || {};
     prefix = prefix || "";
     Object.keys(mapping.properties || {}).forEach(function(propertyKey) {
@@ -218,15 +228,22 @@
       if (property.type === "nested") {
 
         // Case where the property is a nested object
-        var subNestedPath = nestedPath ? nestedPath + "." + propertyKey : propertyKey;
-        data.ElasticSearchDataSource
-          .kendoFieldsFromESMapping(property, fields, prefixedName, "", subNestedPath);
+        var subNestedPath;
+
+        if (nestedPath) {
+          subNestedPath = nestedPath + "." + propertyKey;
+        } else {
+          subNestedPath = propertyKey;
+        }
+
+        data.ElasticSearchDataSource.kendoFieldsFromESMapping(
+          property, mappingKey, fields, prefixedName, "", subNestedPath);
       } else if (property.properties) {
 
         // Case where the property is a non nested object with properties
         var subEsPrefix = esPrefix ? esPrefix + "." + propertyKey : propertyKey;
-        data.ElasticSearchDataSource
-          .kendoFieldsFromESMapping(property, fields, prefixedName, subEsPrefix, nestedPath);
+        data.ElasticSearchDataSource.kendoFieldsFromESMapping(
+          property, mappingKey, fields, prefixedName, subEsPrefix, nestedPath);
       } else if (property.type === "object") {
 
         // Case where the property is a non nested object with zero subproperties. do nothing.
@@ -235,7 +252,7 @@
         // Finally case of a leaf property
         var field = fields[prefixedName] = fields[prefixedName] || {};
 
-        // the field was already defined with a nested path,
+        // if the field was already defined with a nested path,
         // then we are in the case of field both nested and included in parent
         // then we should not consider it as a real leaf property
         if (!field.esNestedPath) {
@@ -322,7 +339,7 @@
         if (field.esNestedPath) {
           esFilter = {
             nested: {
-              path: field.esNestedPath,
+              path: field.esFullNestedPath,
               filter: esFilter
             }
           };
@@ -354,7 +371,7 @@
   }
 
   // Get a root inner_hits definition to fetch all nested/parent/child docs
-  function getESInnerHits(nestedFields, subTypes, sort, filter) {
+  function getESInnerHits(nestedFields, esMappingKey, subTypes, sort, filter) {
     var innerHits = {};
     Object.keys(nestedFields).forEach(function(nestedPath) {
       var previousLevelInnerHits = innerHits;
@@ -362,6 +379,7 @@
       nestedPath.split(".").forEach(function(nestedPathPart) {
         previousPathParts.push(nestedPathPart);
         var currentPath = previousPathParts.join(".");
+        var fullCurrentPath = esMappingKey ? esMappingKey + "." + currentPath : currentPath;
         var currentFields = nestedFields[currentPath];
         if (!currentFields) {
           return;
@@ -370,21 +388,22 @@
           previousLevelInnerHits[currentPath] = {
             path: {}
           };
-          previousLevelInnerHits[currentPath].path[currentPath] = {
+          previousLevelInnerHits[currentPath].path[fullCurrentPath] = {
             _source: currentFields,
             size: 10000,
             sort: sort,
             query: {
               filtered: {
-                filter: getESInnerHitsFilter(currentPath, null, filter)
+                filter: getESInnerHitsFilter(fullCurrentPath, null, filter)
               }
             }
           };
         }
         if (currentPath !== nestedPath) {
-          previousLevelInnerHits[currentPath].path[currentPath].inner_hits =
-            previousLevelInnerHits[currentPath].path[currentPath].inner_hits || {};
-          previousLevelInnerHits = previousLevelInnerHits[currentPath].path[currentPath].inner_hits;
+          previousLevelInnerHits[currentPath].path[fullCurrentPath].inner_hits =
+            previousLevelInnerHits[currentPath].path[fullCurrentPath].inner_hits || {};
+          previousLevelInnerHits =
+            previousLevelInnerHits[currentPath].path[fullCurrentPath].inner_hits;
         }
       });
     });
@@ -532,7 +551,7 @@
     if (field.esNestedPath) {
       aggs[field.esNestedPath + "_nested"] = aggs[field.esNestedPath + "_nested"] || {
         nested: {
-          path: field.esNestedPath
+          path: field.esFullNestedPath
         },
         aggs: {}
       };
