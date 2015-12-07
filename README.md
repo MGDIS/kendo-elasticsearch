@@ -7,6 +7,10 @@ A Kendo DataSource extension so you can load data into your [Kendo UI Grid](http
 
 It supports filtering, searching, sorting, grouping and aggregating in ElasticSearch for date, number and string fields.
 
+## Install
+
+    bower install kendo-elasticsearch-datasource
+
 ## Demos
 
 To run the demos on your computer you will need a local instance of ElasticSearch, a clone of this repository and [nodejs](https://nodejs.org) and [bower](http://bower.io/).
