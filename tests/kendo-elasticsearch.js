@@ -1327,6 +1327,7 @@
     opts.pageSize = 2;
     opts.schema = {
       model: {
+        esMappingKey: "organization",
         esMapping: {
           properties: {
 
@@ -1340,10 +1341,15 @@
                 country: {
                   type: "string"
                 },
-                telephones: {
-                  type: "nested",
+                contact: {
+                  type: "object",
                   properties: {
-                    value: "string"
+                    telephones: {
+                      type: "nested",
+                      properties: {
+                        value: "string"
+                      }
+                    }
                   }
                 }
               }
@@ -1364,8 +1370,14 @@
       type: "POST",
       response: function(options) {
         var data = JSON.parse(options.data);
-        equal(data.query.filtered.filter.and.filters[0].nested.path, "addresses");
+        equal(data.query.filtered.filter.and.filters[0].nested.path, "organization.addresses");
         ok(data.inner_hits.hasOwnProperty("addresses"));
+        ok(data.inner_hits.addresses.path.hasOwnProperty("organization.addresses"));
+        ok(data.inner_hits.addresses.path["organization.addresses"]
+          .inner_hits.hasOwnProperty("addresses.contact.telephones"));
+        ok(data.inner_hits.addresses.path["organization.addresses"]
+          .inner_hits["addresses.contact.telephones"].path
+          .hasOwnProperty("organization.addresses.contact.telephones"));
         this.responseText = {
           "hits": {
             "hits": [{
@@ -1380,7 +1392,7 @@
                         "country": ["Bulgaria"]
                       },
                       "inner_hits": {
-                        "addresses.telephones": {
+                        "addresses.contact.telephones": {
                           "hits": {
                             "hits": [{
                               "_source": {
@@ -1399,7 +1411,7 @@
                         "country": ["USA"]
                       },
                       "inner_hits": {
-                        "addresses.telephones": {
+                        "addresses.contact.telephones": {
                           "hits": {
                             "hits": [{
                               "_source": {
@@ -1425,7 +1437,7 @@
                         "country": ["France"]
                       },
                       "inner_hits": {
-                        "addresses.telephones": {
+                        "addresses.contact.telephones": {
                           "hits": {
                             "hits": [{
                               "_source": {
@@ -1450,7 +1462,7 @@
       equal(view.length, 4);
       equal(view[0].company_name, "Telerik");
       equal(view[0].addresses_country, "Bulgaria");
-      equal(view[0].addresses_telephones_value, "860.138.6580");
+      equal(view[0].addresses_contact_telephones_value, "860.138.6580");
       done();
     });
   });

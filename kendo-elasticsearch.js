@@ -33,7 +33,7 @@
       if (_model.esMapping) {
         _model.fields = _model.fields || {};
         data.ElasticSearchDataSource.kendoFieldsFromESMapping(
-          _model.esMapping, _model.esMappingKey, _model.fields);
+          _model.esMapping, _model.fields);
       }
 
       var _fields = this._fields = _model.fields;
@@ -216,14 +216,16 @@
   // Transform a mapping definition from ElasticSearch into a kendo fields map
   // This utility function is exposed as it can be interesting to use it before instantiating
   // the actual datasource
+  // @param mapping - An elasticsearch mapping
   data.ElasticSearchDataSource.kendoFieldsFromESMapping = function(
-    mapping, mappingKey, fields, prefix, esPrefix, nestedPath) {
+    mapping, fields, prefix, esPrefix, nestedPath) {
     fields = fields || {};
     prefix = prefix || "";
     Object.keys(mapping.properties || {}).forEach(function(propertyKey) {
       var property = mapping.properties[propertyKey];
       var curedPropertyKey = asKendoPropertyKey(propertyKey);
       var prefixedName = prefix ? prefix + "_" + curedPropertyKey : curedPropertyKey;
+      var esName = esPrefix ? esPrefix + "." + propertyKey : propertyKey;
 
       if (property.type === "nested") {
 
@@ -231,19 +233,18 @@
         var subNestedPath;
 
         if (nestedPath) {
-          subNestedPath = nestedPath + "." + propertyKey;
+          subNestedPath = nestedPath + "." + esName;
         } else {
-          subNestedPath = propertyKey;
+          subNestedPath = esName;
         }
 
         data.ElasticSearchDataSource.kendoFieldsFromESMapping(
-          property, mappingKey, fields, prefixedName, "", subNestedPath);
+          property, fields, prefixedName, "", subNestedPath);
       } else if (property.properties) {
 
         // Case where the property is a non nested object with properties
-        var subEsPrefix = esPrefix ? esPrefix + "." + propertyKey : propertyKey;
         data.ElasticSearchDataSource.kendoFieldsFromESMapping(
-          property, mappingKey, fields, prefixedName, subEsPrefix, nestedPath);
+          property, fields, prefixedName, esName, nestedPath);
       } else if (property.type === "object") {
 
         // Case where the property is a non nested object with zero subproperties. do nothing.
@@ -271,7 +272,7 @@
           if (nestedPath) {
             field.esNestedPath = nestedPath;
           }
-          field.esName = esPrefix ? esPrefix + "." + propertyKey : propertyKey;
+          field.esName = esName;
         }
       }
     });
