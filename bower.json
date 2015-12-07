@@ -1,7 +1,7 @@
 {
   "name": "kendo-elasticsearch",
   "main": "kendo-elasticsearch.js",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "homepage": "https://github.com/thenewmotion/kendo-elasticsearch",
   "authors": [
     "Reinier Lamers <r.lamers@thenewmotion.com>"
