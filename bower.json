@@ -1,10 +1,10 @@
 {
-  "name": "kendo-elasticsearch",
+  "name": "kendo-elasticsearch-datasource",
   "main": "kendo-elasticsearch.js",
   "version": "1.1.0",
-  "homepage": "https://github.com/thenewmotion/kendo-elasticsearch",
+  "homepage": "https://github.com/mgdis/kendo-elasticsearch",
   "authors": [
-    "Reinier Lamers <r.lamers@thenewmotion.com>"
+    "Alban Mouton <mouton-a@mgdis.fr>"
   ],
   "description": "A Kendo DataSource extension so you can load data into your Kendo UI Grid from an ElasticSearch index.",
   "keywords": [
