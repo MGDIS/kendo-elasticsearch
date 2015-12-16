@@ -53,7 +53,7 @@
           var field = _fields[k];
           field.esName = field.esName || k;
           field.esNameSplit = field.esName.split(".");
-          field.esFullNestedPath = field.esFullNestedPath || field.esNestedPath;
+          field.esFullNestedPath = field.esNestedPath;
           if (_model.esMappingKey) {
             field.esFullNestedPath = _model.esMappingKey + "." + field.esFullNestedPath;
           }
