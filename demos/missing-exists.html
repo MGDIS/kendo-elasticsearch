@@ -3,7 +3,7 @@
 
 <head>
   <meta charset='utf-8'>
-  <title>Kendo Elasticsearch - demos - Basic</title>
+  <title>Kendo Elasticsearch - demos - Missing and exists filters</title>
 
   <!--<link rel='stylesheet' href='http://kendo.cdn.telerik.com/2014.1.318/styles/kendo.common.min.css'>-->
   <link rel='stylesheet' href='../bower_components/kendo-ui/styles/kendo.common.min.css'>
@@ -12,7 +12,7 @@
 </head>
 
 <body>
-  <h1>Kendo Elasticsearch - demos - Basic</h1>
+  <h1>Kendo Elasticsearch - demos - Missing and exists filters</h1>
 
   <div id='grid'></div>
 
@@ -27,6 +27,27 @@
   <script>
     $(document).ready(function() {
       $('#grid').kendoGrid({
+
+        // LOOK HERE !
+        // Inspired by this http://www.telerik.com/forums/grid-filtering-in-javascript---not-equal-to-null
+        filterMenuInit: function(e) {
+          var selects = e.container.find("select:not(.k-filter-and, k-filter-or)");
+          var inputs = e.container.find("input");
+
+          selects.each(function(i) {
+            var select = $(this);
+            var input = $(inputs[i]);
+            select.change(function() {
+              if (select.val() === 'exists') {
+                input.val('-- exists --').change();
+              };
+              if (select.val() === 'missing') {
+                input.val('-- missing --').change();
+              };
+            });
+          });
+        },
+
         // configure the datasource to be an ElasticSearchDataSource
         dataSource: new kendo.data.ElasticSearchDataSource({
           transport: {
@@ -49,22 +70,16 @@
                   type: 'string',
                   esName: 'name.firstName'
                 },
-                lastName: {
+                title: {
                   type: 'string',
-                  esName: 'name.lastName'
-                },
-                birthDate: {
-                  type: 'date'
-                },
-                active: {
-                  type: 'boolean'
+                  esName: 'title'
                 }
               }
             }
           },
 
           sort: {
-            field: 'birthDate',
+            field: 'firstName',
             dir: 'desc'
           }
         }),
@@ -82,23 +97,18 @@
               startswith: "Starts with",
               contains: "Contains",
               doesnotcontain: "Does not contain",
-              endswith: "Ends with"
+              endswith: "Ends with",
+              exists: 'Exists',
+              missing: 'Missing'
             }
           }
         },
         columns: [{
-          field: 'birthDate',
-          format: '{0:D}',
-          title: 'Date of birth'
-        }, {
-          field: 'active',
-          title: 'Active'
-        }, {
           field: 'firstName',
           title: 'First name'
         }, {
-          field: 'lastName',
-          title: 'Last name'
+          field: 'title',
+          title: 'Title'
         }]
       });
     });

@@ -10,6 +10,10 @@
     "active": {
       "type": "boolean"
     },
+    "title": {
+      "type": "string",
+      "faker": "name.jobTitle"
+    },
     "name": {
       "type": "object",
       "required": ["firstName", "lastName"],
@@ -21,10 +25,6 @@
         "lastName": {
           "type": "string",
           "faker": "name.lastName"
-        },
-        "title": {
-          "type": "string",
-          "faker": "name.title"
         }
       }
     },

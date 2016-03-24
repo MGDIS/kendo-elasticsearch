@@ -18,10 +18,10 @@
       // Prepare the transport to query ES
       // The only required parameter is transport.read.url
       if (initOptions.transport && initOptions.transport.read && initOptions.transport.read.url) {
-        var readTrasnsport = initOptions.transport.read;
-        readTrasnsport.dataType = readTrasnsport.dataType || "json";
-        readTrasnsport.method = readTrasnsport.method || "POST";
-        readTrasnsport.contentType = readTrasnsport.contentType || "application/json";
+        var readTransport = initOptions.transport.read;
+        readTransport.dataType = readTransport.dataType || "json";
+        readTransport.method = readTransport.method || "POST";
+        readTransport.contentType = readTransport.contentType || "application/json";
       } else {
         throw new Error("transport.read.url must be set to use ElasticSearchDataSource");
       }
@@ -494,6 +494,10 @@
           return fieldEscaped + ":" + valueEscaped + "*";
         case "endswith":
           return fieldEscaped + ":*" + valueEscaped;
+        case "missing":
+          return "_missing_:" + fieldEscaped;
+        case "exists":
+          return "_exists_:" + fieldEscaped;
         default:
           throw new Error("Unsupported Kendo filter operator: " + kendoFilter.operator);
       }

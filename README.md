@@ -13,7 +13,11 @@ It supports filtering, searching, sorting, grouping and aggregating in ElasticSe
 
 ## Demos
 
-To run the demos on your computer you will need a local instance of ElasticSearch, a clone of this repository and [nodejs](https://nodejs.org) and [bower](http://bower.io/).
+To run the demos on your computer you will need a local instance of ElasticSearch with CORS enabled, a clone of this repository and [nodejs](https://nodejs.org) and [bower](http://bower.io/).
+
+If you use docker this command will create an ElasticSearch instance :
+
+    docker run -d --name elasticsearch1.7 -p 9200:9200 elasticsearch:1.7 -Des.http.cors.enabled=true -Des.http.cors.allow-origin=*
 
 The dataset is constituted of 2 simple mappings: "organization" and "person". The documents are generated randomly using [json-schema-faker](https://github.com/json-schema-faker/json-schema-faker).
 The persons have an organization as [parent](https://www.elastic.co/guide/en/elasticsearch/guide/current/parent-child.html).
@@ -122,6 +126,10 @@ This example illustrates passing a ElasticSearch mapping instead of kendo fields
 The datasource will automatically transform one into the other.
 
 See [the source code](./demos/mapping.html).
+
+### Exists and missing filters
+
+This example illustrates costumizing kendo's filters to support the 'exists' and 'missing' elasticsearch filters.
 
 ## TODO:
 
