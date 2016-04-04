@@ -273,6 +273,13 @@
             field.esNestedPath = nestedPath;
           }
           field.esName = esName;
+
+          // When the field is not analyzed, the default string subfields should not be applied.
+          if (property.index === 'not_analyzed') {
+            field.esSearchSubField = null;
+            field.esFilterSubField = null;
+            field.esAggSubField = null;
+          }
         }
       }
     });
