@@ -1,10 +1,27 @@
 {
   "type": "object",
-  "required": ["companyName", "addresses"],
+  "required": ["companyName", "accounts", "addresses"],
   "properties": {
     "companyName": {
       "type": "string",
       "faker": "company.companyName"
+    },
+    "accounts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "amount"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "faker": "finance.accountName"
+          },
+          "amount": {
+            "type": "number",
+            "faker": "random.number"
+          }
+        }
+      }
     },
     "addresses": {
       "type": "array",
@@ -57,7 +74,7 @@
                 },
                 "type": {
                   "type": "string",
-                  "enum": [ "fax", "fix" ]
+                  "enum": ["fax", "fix"]
                 }
               }
             }

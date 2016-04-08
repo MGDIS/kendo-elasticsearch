@@ -48,12 +48,22 @@
                 companyName: {
                   type: 'string'
                 },
+                /*accountName: {
+                  type: 'string',
+                  esNestedPath: 'accounts',
+                  esName: 'name'
+                },*/
+                accountAmount: {
+                  type: 'number',
+                  esNestedPath: 'accounts',
+                  esName: 'amount'
+                },
                 addressCountry: {
                   type: 'string',
                   esNestedPath: 'addresses',
                   esName: 'country'
                 },
-                addressCity: {
+                /*addressCity: {
                   type: 'string',
                   esNestedPath: 'addresses',
                   esName: 'city'
@@ -82,16 +92,24 @@
                   type: 'string',
                   esNestedPath: 'addresses.telephones',
                   esName: 'type'
-                },
+                },*/
               }
             }
           },
 
-          /*group: {
+          group: [{
             field: "addressCountry",
-            dir: "asc"
-          },*/
-          group: {
+            dir: "asc",
+            aggregates: [{
+              field: 'accountAmount',
+              aggregate: 'max'
+            }]
+          }],
+          aggregate: [{
+            field: 'accountAmount',
+            aggregate: 'max'
+          }],
+          /*group: {
             field: "addressCommentDateYear",
             dir: "desc",
             aggregates: [{
@@ -101,7 +119,7 @@
               }]
               // see https://www.elastic.co/guide/en/elasticsearch/reference/2.0/search-aggregations-bucket-datehistogram-aggregation.html
               // if defined the bucket aggregation will be a date_histogram aggregation
-          },
+          },*/
 
           sort: {
             field: 'addressCountry',
@@ -136,7 +154,7 @@
           field: 'addressCountry',
           title: 'Country',
           groupHeaderTemplate: "Country: #=value#, Count: #=count#",
-        }, {
+        }/*, {
           field: 'addressCity',
           title: 'City'
         }, {
@@ -151,6 +169,14 @@
         }, {
           field: 'telephoneValue',
           title: 'Phone'
+        }, {
+          field: 'accountName',
+          title: 'Account name'
+        }*/, {
+          field: 'accountAmount',
+          title: 'Account amount',
+          footerTemplate: "Max: #=max#",
+          groupFooterTemplate: "Max: #=max#"
         }]
       });
     });

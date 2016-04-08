@@ -41,11 +41,17 @@
       "properties": {
         "addresses": {
           "type": "nested",
+          "include_in_root": true,
           "properties": {
             "telephones": {
-              "type": "nested"
+              "type": "nested",
+              "include_in_root": true
             }
           }
+        },
+        "accounts": {
+          "type": "nested",
+          "include_in_root": true
         }
       }
     },

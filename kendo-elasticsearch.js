@@ -520,19 +520,31 @@
   };
 
   // Transform kendo aggregates into ES metric aggregations
-  function kendoAggregationToES(aggregate, fields) {
+  function kendoAggregationToES(aggregate, fields, nestedPath) {
     var esAggs = {};
 
     if (aggregate && aggregate.length > 0) {
       esAggs = {};
 
       aggregate.forEach(function(aggItem) {
-        var field = fields[aggItem.field].esAggName;
+        var field = fields[aggItem.field];
 
-        esAggs[aggItem.field + "_" + aggItem.aggregate] = {};
-        esAggs[aggItem.field + "_" + aggItem.aggregate][kendoToESAgg[aggItem.aggregate]] = {
-          field: field
+        var agg = {};
+        agg[kendoToESAgg[aggItem.aggregate]] = {
+          field: field.esAggName
         };
+
+        // If the aggregation is based on a field that does not match the current group nesting path
+        // then we need to tell ES to look at the root level using a reverse nested agg
+        if (nestedPath && field.esNestedPath !== nestedPath) {
+          esAggs[aggItem.field + "_reverse_nested"] = {
+            reverse_nested: {},
+            aggregations: {}
+          };
+          esAggs[aggItem.field + "_reverse_nested"].aggregations[aggItem.field + "_" + aggItem.aggregate] = agg;
+        } else {
+          esAggs[aggItem.field + "_" + aggItem.aggregate] = agg;
+        }
       });
     }
 
@@ -611,7 +623,7 @@
       field: field.esAggName
     };
 
-    var esGroupAggregates = group.aggregates ? kendoAggregationToES(groupAggregates, fields) : {};
+    var esGroupAggregates = group.aggregates ? kendoAggregationToES(groupAggregates, fields, field.esNestedPath) : {};
     groupAgg.aggregations = esGroupAggregates;
     missingAgg.aggregations = esGroupAggregates;
 
@@ -621,7 +633,18 @@
   // Transform aggregation results from a ES query to kendo aggregates
   function esAggToKendoAgg(aggregations) {
     var aggregates = {};
-    Object.keys(aggregations || {}).forEach(function(aggKey) {
+    aggregations = aggregations || {};
+
+    // First get reverse_nested aggregations up one level
+    Object.keys(aggregations).forEach(function(aggKey) {
+      if (aggKey.indexOf('reverse_nested') !== -1) {
+        Object.keys(aggregations[aggKey]).forEach(function(reverseNestedAggKey) {
+          aggregations[reverseNestedAggKey] = aggregations[aggKey][reverseNestedAggKey];
+        });
+      }
+    });
+
+    Object.keys(aggregations).forEach(function(aggKey) {
       ["count", "min", "max", "average", "sum"].forEach(function(aggType) {
         var suffixLength = aggType.length + 1;
         if (aggKey.substr(aggKey.length - suffixLength) === "_" + aggType) {
