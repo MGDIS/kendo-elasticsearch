@@ -937,7 +937,7 @@
   function asESParameter(value) {
     if (value.constructor == Date) {
       value = value.toISOString();
-    } else if (typeof value === "boolean") {
+    } else if (typeof value === "boolean" || typeof value === "number") {
       value = "" + value;
     }
     return value.replace("\\", "\\\\").replace(/[+\-&|!()\{}\[\]^:"~*?:\/ ]/g, "\\$&");
