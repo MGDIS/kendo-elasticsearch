@@ -27,7 +27,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["country", "city", "zipCode", "streetName", "comment"],
+        "required": ["country", "city", "zipCode", "streetName", "comment", "telephones"],
         "properties": {
           "zipCode": {
             "type": "string",
@@ -66,7 +66,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["value", "type"],
+              "required": ["value", "type", "used"],
               "properties": {
                 "value": {
                   "type": "string",
@@ -75,6 +75,10 @@
                 "type": {
                   "type": "string",
                   "enum": ["fax", "fix"]
+                },
+                "used": {
+                  "type": "number",
+                  "faker": "random.number"
                 }
               }
             }

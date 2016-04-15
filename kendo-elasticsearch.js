@@ -166,10 +166,23 @@
           });
 
         // Transform kendo aggregations into ES aggregations
-        esParams.aggs = kendoAggregationToES(data.aggregate, _fields, null, esParams.query.filtered.filter);
+        esParams.aggs = kendoAggregationToES(
+          data.aggregate,
+          _fields,
+          _nestedFields,
+          _model.esMappingKey,
+          esParams.query.filtered.filter
+        );
 
         // Transform Kendo group instruction into an ES bucket aggregation
-        kendoGroupsToES(esParams.aggs, data.group, _fields, esParams.query.filtered.filter);
+        kendoGroupsToES(
+          esParams.aggs,
+          data.group,
+          _fields,
+          _nestedFields,
+          _model.esMappingKey,
+          esParams.query.filtered.filter
+        );
 
         return JSON.stringify(esParams);
       };
@@ -520,61 +533,64 @@
   };
 
   // Transform kendo aggregates into ES metric aggregations
-  function kendoAggregationToES(aggregate, fields, nestedPath, filter) {
+  function kendoAggregationToES(aggregate, fields, nestedFields, esMappingKey, filter, groupNestedPath) {
     var esAggs = {};
 
-    if (aggregate && aggregate.length > 0) {
-      esAggs = {};
-
-      aggregate.forEach(function(aggItem) {
-        var field = fields[aggItem.field];
-
-        var agg = {};
-        var aggName;
-        if (field.esNestedPath) {
-          aggName = aggItem.field + "_filter_nested";
-          var nestedFilter = getESInnerHitsFilter(field.esFullNestedPath, null, filter);
-          agg.nested = {
-            path: field.esFullNestedPath
-          };
-          agg.aggregations = {};
-          agg.aggregations[aggItem.field + "_filter"] = {
-            filter: nestedFilter,
-            aggregations: {}
-          };
-          agg.aggregations[aggItem.field + "_filter"].aggregations[aggItem.field + "_" + aggItem.aggregate] = {};
-          agg.aggregations[aggItem.field + "_filter"].aggregations[aggItem.field + "_" + aggItem.aggregate][kendoToESAgg[aggItem.aggregate]] = {
-            field: field.esAggName
-          };
-        } else {
-          aggName = aggItem.field + "_" + aggItem.aggregate;
-          agg[kendoToESAgg[aggItem.aggregate]] = {
-            field: field.esAggName
-          };
-        }
-
-        // If the aggregation is based on a field that does not match the current group nesting path
-        // then we need to tell ES to look at the root level using a reverse nested agg
-        if (nestedPath && field.esNestedPath !== nestedPath) {
-          esAggs[aggItem.field + "_reverse_nested"] = {
+    (aggregate ||  []).forEach(function(aggItem) {
+      var field = fields[aggItem.field];
+      var nestedPath = field.esNestedPath;
+      var aggsWrapper = esAggs;
+      if (groupNestedPath !== nestedPath) {
+        var previousPathParts = [];
+        if (groupNestedPath && nestedPath.indexOf(groupNestedPath) !== 0) {
+          esAggs.group_reverse_nested = esAggs.group_reverse_nested || {
             reverse_nested: {},
             aggregations: {}
           };
-          esAggs[aggItem.field + "_reverse_nested"].aggregations[aggName] = agg;
-        } else {
-          esAggs[aggName] = agg;
+          aggsWrapper = esAggs.group_reverse_nested.aggregations;
+        } else if (groupNestedPath) {
+          nestedPath = nestedPath.substr(groupNestedPath.length + 1, nestedPath.length);
         }
-      });
-    }
+
+        nestedPath.split(".").forEach(function(nestedPathPart) {
+          previousPathParts.push(nestedPathPart);
+          var currentPath = groupNestedPath ? groupNestedPath + "." + previousPathParts.join(".") : previousPathParts.join(".");
+          var fullCurrentPath = esMappingKey ? esMappingKey + "." + currentPath : currentPath;
+          var currentFields = nestedFields[currentPath];
+          if (!currentFields) {
+            return;
+          }
+          if (!aggsWrapper[currentPath]) {
+            aggsWrapper[currentPath + '_filter_nested'] = aggsWrapper[currentPath + '_filter_nested'] || {
+              nested: {
+                path: fullCurrentPath
+              },
+              aggregations: {}
+            };
+            aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'] =
+              aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'] ||  {
+                filter: getESInnerHitsFilter(fullCurrentPath, null, filter),
+                aggregations: {}
+              };
+          }
+          aggsWrapper = aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'].aggregations;
+        });
+      }
+
+      aggsWrapper[aggItem.field + '_' + aggItem.aggregate] = {};
+      aggsWrapper[aggItem.field + '_' + aggItem.aggregate][kendoToESAgg[aggItem.aggregate]] = {
+        field: field.esAggName
+      };
+    });
 
     return esAggs;
   }
 
   // Transform kendo groups declaration into ES bucket aggregations
-  function kendoGroupsToES(aggs, groups, fields, filter) {
+  function kendoGroupsToES(aggs, groups, fields, nestedFields, esMappingKey, filter) {
     var previousLevelAggs = [aggs];
     groups.forEach(function(group) {
-      var nextLevelAggs = kendoGroupToES(group, fields, filter);
+      var nextLevelAggs = kendoGroupToES(group, fields, nestedFields, esMappingKey, filter);
       previousLevelAggs.forEach(function(previousLevelAgg) {
         Object.keys(nextLevelAggs).forEach(function(nextLevelAggKey) {
           previousLevelAgg[nextLevelAggKey] = nextLevelAggs[nextLevelAggKey];
@@ -586,7 +602,7 @@
     });
   }
 
-  function kendoGroupToES(group, fields, filter) {
+  function kendoGroupToES(group, fields, nestedFields, esMappingKey, filter) {
     var field = fields[group.field];
     var aggs = {};
     var groupAgg;
@@ -642,7 +658,7 @@
       field: field.esAggName
     };
 
-    var esGroupAggregates = group.aggregates ? kendoAggregationToES(groupAggregates, fields, field.esNestedPath, filter) : {};
+    var esGroupAggregates = kendoAggregationToES(groupAggregates, fields, nestedFields, esMappingKey, filter, field.esNestedPath);
     groupAgg.aggregations = esGroupAggregates;
     missingAgg.aggregations = esGroupAggregates;
 
@@ -650,28 +666,9 @@
   }
 
   // Transform aggregation results from a ES query to kendo aggregates
-  function esAggToKendoAgg(aggregations) {
-    var aggregates = {};
+  function esAggToKendoAgg(aggregations, previousAggregates) {
+    var aggregates = previousAggregates || {};
     aggregations = aggregations || {};
-
-    // First get reverse_nested aggregations up one level
-    Object.keys(aggregations).forEach(function(aggKey) {
-      if (aggKey.indexOf('_reverse_nested') !== -1) {
-        Object.keys(aggregations[aggKey]).forEach(function(reverseNestedAggKey) {
-          aggregations[reverseNestedAggKey] = aggregations[aggKey][reverseNestedAggKey];
-        });
-      }
-    });
-
-    Object.keys(aggregations).forEach(function(aggKey) {
-      if (aggKey.indexOf('_filter_nested') !== -1) {
-        var nestedFilterAggKey = aggKey.replace("_filter_nested", "_filter");
-        Object.keys(aggregations[aggKey][nestedFilterAggKey]).forEach(function(nestedAggKey) {
-          aggregations[nestedAggKey] = aggregations[aggKey][nestedFilterAggKey][nestedAggKey];
-        });
-      }
-    });
-
     Object.keys(aggregations).forEach(function(aggKey) {
       ["count", "min", "max", "average", "sum"].forEach(function(aggType) {
         var suffixLength = aggType.length + 1;
@@ -681,6 +678,12 @@
           aggregates[fieldKey][aggType] = aggregations[aggKey].value;
         }
       });
+
+      if (aggKey.substr(aggKey.length - 7) === "_nested" ||  aggKey.substr(aggKey.length - 7) === "_filter") {
+        // recursivity on intermediate levels
+        esAggToKendoAgg(aggregations[aggKey], aggregates);
+      }
+
     });
     return aggregates;
   }

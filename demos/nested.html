@@ -52,12 +52,12 @@
                   type: 'string',
                   esNestedPath: 'accounts',
                   esName: 'name'
-                },*/
+                },*//*
                 accountAmount: {
                   type: 'number',
                   esNestedPath: 'accounts',
                   esName: 'amount'
-                },
+                },*/
                 addressCountry: {
                   type: 'string',
                   esNestedPath: 'addresses',
@@ -82,8 +82,8 @@
                   type: 'date',
                   esNestedPath: 'addresses',
                   esName: 'comment.date'
-                },
-                telephoneValue: {
+                },*/
+                /*telephoneValue: {
                   type: 'string',
                   esNestedPath: 'addresses.telephones',
                   esName: 'value'
@@ -93,6 +93,11 @@
                   esNestedPath: 'addresses.telephones',
                   esName: 'type'
                 },*/
+                telephoneUsed: {
+                  type: 'number',
+                  esNestedPath: 'addresses.telephones',
+                  esName: 'used'
+                },
               }
             }
           },
@@ -101,12 +106,12 @@
             field: "addressCountry",
             dir: "asc",
             aggregates: [{
-              field: 'accountAmount',
+              field: 'telephoneUsed',
               aggregate: 'max'
             }]
           }],
           aggregate: [{
-            field: 'accountAmount',
+            field: 'telephoneUsed',
             aggregate: 'max'
           }],
           /*group: {
@@ -124,7 +129,12 @@
           sort: {
             field: 'addressCountry',
             dir: 'asc'
-          }
+          },
+          filter: [{
+            field: 'addressCountry',
+            operator: 'eq',
+            value: 'Finland'
+          }]
         }),
 
         // other grid options besides the datasource
@@ -172,9 +182,14 @@
         }, {
           field: 'accountName',
           title: 'Account name'
-        }*/, {
+        }*//*, {
           field: 'accountAmount',
           title: 'Account amount',
+          footerTemplate: "Max: #=max#",
+          groupFooterTemplate: "Max: #=max#"
+        }*/, {
+          field: 'telephoneUsed',
+          title: 'Tel used',
           footerTemplate: "Max: #=max#",
           groupFooterTemplate: "Max: #=max#"
         }]
