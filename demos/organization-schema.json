@@ -25,6 +25,8 @@
     },
     "addresses": {
       "type": "array",
+      "minItems": 0,
+      "maxItems": 2,
       "items": {
         "type": "object",
         "required": ["country", "city", "zipCode", "streetName", "comment", "telephones"],

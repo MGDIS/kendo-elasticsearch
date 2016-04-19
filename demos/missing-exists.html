@@ -52,13 +52,14 @@
         dataSource: new kendo.data.ElasticSearchDataSource({
           transport: {
             read: {
-              url: 'http://localhost:9200/kendo-elasticsearch-demo/person/_search/'
+              url: 'http://localhost:9200/kendo-elasticsearch-demo/organization/_search/'
             }
           },
           pageSize: 10,
 
           schema: {
             model: {
+              esMappingKey: 'organization',
               // Use this to specify that sub fields of string fields should be used for pattern based filtering and aggregations
               // If the subfields are different by field use 'esFilterSubField' and/or 'esAggSubField' on each filed definition
               esStringSubFields: {
@@ -66,20 +67,20 @@
                 agg: 'raw'
               },
               fields: {
-                firstName: {
-                  type: 'string',
-                  esName: 'name.firstName'
+                companyName: {
+                  type: 'string'
                 },
-                title: {
+                addressCountry: {
                   type: 'string',
-                  esName: 'title'
+                  esNestedPath: 'addresses',
+                  esName: 'country'
                 }
               }
             }
           },
 
           sort: {
-            field: 'firstName',
+            field: 'companyName',
             dir: 'desc'
           }
         }),
@@ -104,11 +105,11 @@
           }
         },
         columns: [{
-          field: 'firstName',
-          title: 'First name'
+          field: 'companyName',
+          title: 'Company name'
         }, {
-          field: 'title',
-          title: 'Title'
+          field: 'addressCountry',
+          title: 'Address country'
         }]
       });
     });
