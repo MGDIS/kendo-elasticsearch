@@ -64,6 +64,11 @@
               birthDateDay: {
                 type: 'date',
                 esName: 'birthDate'
+              },
+              age: {
+                type: 'number',
+                esName: 'birthDate',
+                duration: 'beforeToday'
               }
             }
           }
@@ -137,6 +142,9 @@
         }, {
           field: 'lastName',
           title: 'Last name'
+        }, {
+          field: 'age',
+          title: 'Age'
         }]
       };
 

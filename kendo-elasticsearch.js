@@ -480,14 +480,28 @@
 
     // Use the filter field name except for contains
     // that should use classical search instead of regexp
-    var field;
-    if (kendoFilter.operator === "search") {
-      field = fields[kendoFilter.field].esSearchName;
-    } else {
-      field = fields[kendoFilter.field].esFilterName;
+    var field = fields[kendoFilter.field];
+
+    // special case field that is a date deep down by displayed as a number
+    if (field.duration === 'beforeToday') {
+      if (!moment) {
+        throw new Error('Working on durations requires to load momentjs library');
+      }
+      kendoFilter.value = moment().startOf('day').subtract(kendoFilter.value, 'days').format();
+      if (kendoFilter.operator === 'lt') kendoFilter.operator = 'gt';
+      else if (kendoFilter.operator === 'lte') kendoFilter.operator = 'gte';
+      else if (kendoFilter.operator === 'gt') kendoFilter.operator = 'lt';
+      else if (kendoFilter.operator === 'gte') kendoFilter.operator = 'lte';
     }
 
-    var fieldEscaped = asESParameter(field);
+    var fieldName;
+    if (kendoFilter.operator === "search") {
+      fieldName = field.esSearchName;
+    } else {
+      fieldName = field.esFilterName;
+    }
+
+    var fieldEscaped = asESParameter(fieldName);
     var valueEscaped = asESParameter(kendoFilter.value);
 
     var simpleBinaryOperators = {
@@ -882,6 +896,17 @@
       }).forEach(function(fieldKey) {
         var field = fields[fieldKey];
         var values = getValuesFromSource(hitSource, field.esNameSplit);
+
+        // special case field that is a date deep down by displayed as a number
+        if (field.duration === 'beforeToday') {
+          if (!moment) {
+            throw new Error('Working on durations requires to load momentjs library');
+          }
+          values = values.map(function(value) {
+            return moment().startOf('day').diff(moment(value), 'days', true);
+          });
+        }
+
         if (values) {
           if (field.esMultiSplit) {
             if (values && values.length) {
