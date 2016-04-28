@@ -5,7 +5,7 @@
 
 A Kendo DataSource extension so you can load data into your [Kendo UI Grid](http://docs.telerik.com/kendo-ui/api/javascript/ui/grid) from an [ElasticSearch](https://www.elasticsearch.org/) index.
 
-It supports filtering, searching, sorting, grouping and aggregating in ElasticSearch for date, number and string fields.
+It supports filtering, searching, sorting, grouping and aggregating in ElasticSearch for date, number (double only) and string fields.
 
 ## Install
 

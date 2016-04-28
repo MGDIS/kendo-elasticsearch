@@ -14,6 +14,13 @@
   "mappings": {
     "organization": {
       "dynamic_templates": [{
+        "integers_as_double": {
+          "match_mapping_type": "long",
+          "mapping": {
+            "type": "double"
+          }
+        }
+      }, {
         "string_fields": {
           "mapping": {
             "index": "analyzed",
@@ -60,6 +67,13 @@
         "type": "organization"
       },
       "dynamic_templates": [{
+        "integers_as_double": {
+          "match_mapping_type": "long",
+          "mapping": {
+            "type": "double"
+          }
+        }
+      }, {
         "string_fields": {
           "mapping": {
             "index": "analyzed",
