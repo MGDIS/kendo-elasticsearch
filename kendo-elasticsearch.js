@@ -929,10 +929,14 @@
         splittedItems.forEach(function(splittedItem) {
           if (nestedItems.length) {
             nestedItems.forEach(function(nestedItem) {
-              Object.keys(splittedItem).forEach(function(key) {
-                nestedItem[key] = splittedItem[key];
+              var mergedItem = {};
+              Object.keys(nestedItem).forEach(function(key) {
+                mergedItem[key] = nestedItem[key];
               });
-              newSplittedDataItems.push(nestedItem);
+              Object.keys(splittedItem).forEach(function(key) {
+                mergedItem[key] = splittedItem[key];
+              });
+              newSplittedDataItems.push(mergedItem);
             });
           } else {
             newSplittedDataItems.push(splittedItem);
