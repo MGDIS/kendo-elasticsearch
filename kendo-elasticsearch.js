@@ -483,15 +483,22 @@
     var field = fields[kendoFilter.field];
 
     // special case field that is a date deep down by displayed as a number
-    if (field.duration === 'beforeToday') {
+    if (field.duration) {
       if (!moment) {
         throw new Error('Working on durations requires to load momentjs library');
       }
+    }
+
+    if (field.duration === 'beforeToday') {
       kendoFilter.value = moment().startOf('day').subtract(kendoFilter.value, 'days').format();
       if (kendoFilter.operator === 'lt') kendoFilter.operator = 'gt';
       else if (kendoFilter.operator === 'lte') kendoFilter.operator = 'gte';
       else if (kendoFilter.operator === 'gt') kendoFilter.operator = 'lt';
       else if (kendoFilter.operator === 'gte') kendoFilter.operator = 'lte';
+    }
+
+    if (field.duration === 'afterToday') {
+      kendoFilter.value = moment().startOf('day').add(kendoFilter.value, 'days').format();
     }
 
     var fieldName;
@@ -898,12 +905,21 @@
         var values = getValuesFromSource(hitSource, field.esNameSplit);
 
         // special case field that is a date deep down by displayed as a number
-        if (field.duration === 'beforeToday') {
+        if (field.duration) {
           if (!moment) {
             throw new Error('Working on durations requires to load momentjs library');
           }
+        }
+
+        if (field.duration === 'beforeToday') {
           values = values.map(function(value) {
             return moment().startOf('day').diff(moment(value), 'days', true);
+          });
+        }
+
+        if (field.duration === 'afterToday') {
+          values = values.map(function(value) {
+            return moment(value).diff(moment().startOf('day'), 'days', true);
           });
         }
 
