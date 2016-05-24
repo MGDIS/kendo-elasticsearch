@@ -913,13 +913,13 @@
 
         if (field.duration === 'beforeToday') {
           values = values.map(function(value) {
-            return moment().startOf('day').diff(moment(value), 'days', true);
+            return moment().startOf('day').diff(moment(value).startOf('day'), 'days', true);
           });
         }
 
         if (field.duration === 'afterToday') {
           values = values.map(function(value) {
-            return moment(value).diff(moment().startOf('day'), 'days', true);
+            return moment(value).startOf('day').diff(moment().startOf('day'), 'days', true);
           });
         }
 
