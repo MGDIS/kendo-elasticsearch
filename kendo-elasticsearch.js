@@ -364,6 +364,11 @@
               filter: esFilter
             }
           };
+          if (filter.operator === 'missing') {
+            esFilter = {
+              not: esFilter
+            };
+          }
         } else if (field.esParentType) {
           esFilter = {
             has_parent: {
@@ -371,6 +376,11 @@
               filter: esFilter
             }
           };
+          if (filter.operator === 'missing') {
+            esFilter = {
+              not: esFilter
+            };
+          }
         } else if (field.esChildType) {
           esFilter = {
             has_child: {
@@ -378,6 +388,11 @@
               filter: esFilter
             }
           };
+          if (filter.operator === 'missing') {
+            esFilter = {
+              not: esFilter
+            };
+          }
         }
 
         esFilters.push(esFilter);
@@ -457,15 +472,30 @@
       logicFilter.filters = logicFilter.filters.filter(function(childFilter) {
         return childFilter.and || childFilter.or ||
           (childFilter.nested && childFilter.nested.path === nestedPath) ||
+          (childFilter.not && childFilter.not.nested && childFilter.not.nested.path === nestedPath) ||
           (childFilter.has_child && childFilter.has_child.type === subType) ||
-          (childFilter.has_parent && childFilter.has_parent.type === subType);
+          (childFilter.not && childFilter.not.has_child && childFilter.not.has_child.type === subType) ||
+          (childFilter.has_parent && childFilter.has_parent.type === subType) ||
+          (childFilter.not && childFilter.not.has_parent && childFilter.not.has_parent.type === subType);
       }).map(function(childFilter) {
         if (childFilter.nested) {
           return childFilter.nested.filter;
+        } else if (childFilter.not && childFilter.not.nested) {
+          return {
+            not: childFilter.not.nested.filter
+          };
         } else if (childFilter.has_child) {
           return childFilter.has_child.filter;
+        } else if (childFilter.not && childFilter.not.has_child) {
+          return {
+            not: childFilter.not.has_child.filter
+          };
         } else if (childFilter.has_parent) {
           return childFilter.has_parent.filter;
+        } else if (childFilter.not && childFilter.not.has_parent) {
+          return {
+            not: childFilter.not.has_parent.filter
+          };
         } else {
           return getESInnerHitsFilter(nestedPath, childFilter);
         }
@@ -536,7 +566,14 @@
         case "endswith":
           return fieldEscaped + ":*" + valueEscaped;
         case "missing":
-          return "_missing_:" + fieldEscaped;
+          // Missing in a nested document is implemented as a "not nested exists"
+          // see https://github.com/elastic/elasticsearch/issues/3495
+          if (field.esNestedPath || field.esParentType || field.esChildType) {
+            return "_exists_:" + fieldEscaped;
+          } else {
+            return "_missing_:" + fieldEscaped;
+          }
+          break;
         case "exists":
           return "_exists_:" + fieldEscaped;
         default:
