@@ -507,6 +507,9 @@
   // Transform a single kendo filter in a string
   // that can be used to compose a ES query_string query
   function kendoFilterToESParam(kendoFilter, fields) {
+    
+    // Boolean filter seems to forget the operator sometimes
+    kendoFilter.operator = kendoFilter.operator || 'eq';
 
     // Use the filter field name except for contains
     // that should use classical search instead of regexp
