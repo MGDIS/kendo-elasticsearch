@@ -51,6 +51,7 @@
       for (var k in _fields) {
         if (_fields.hasOwnProperty(k)) {
           var field = _fields[k];
+          field.key = k;
           field.esName = field.esName || k;
           field.esNameSplit = field.esName.split(".");
           field.esFullNestedPath = field.esNestedPath;
@@ -865,7 +866,6 @@
     var groups = [];
     dataItems.forEach(function(dataItem) {
       var group = groupDefs.map[dataItem[field.key] || ""];
-
       // If no exact match, then we may be in some range aggregation ?
       if (!group) {
         var fieldValue = field.type === 'date' ? new Date(dataItem[field.key]) : dataItem[field.key];
