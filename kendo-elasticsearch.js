@@ -194,7 +194,7 @@
       schema.parse = function(response) {
         var dataItems = esHitsToDataItems(response.hits.hits, _fields);
         var aggregates = esAggToKendoAgg(response.aggregations);
-        var groups = esAggsToKendoGroups(dataItems, response.aggregations);
+        var groups = esAggsToKendoGroups(dataItems, response.aggregations, _fields);
 
         return {
           total: response.hits.total,
@@ -507,7 +507,7 @@
   // Transform a single kendo filter in a string
   // that can be used to compose a ES query_string query
   function kendoFilterToESParam(kendoFilter, fields) {
-    
+
     // Boolean filter seems to forget the operator sometimes
     kendoFilter.operator = kendoFilter.operator || 'eq';
 
@@ -776,7 +776,7 @@
 
   // Transform ES bucket aggregations into kendo groups of data items
   // See doc here for format of groups: http://docs.telerik.com/KENDO-UI/api/javascript/data/datasource#configuration-schema.groups
-  function esAggsToKendoGroups(dataItems, aggregations) {
+  function esAggsToKendoGroups(dataItems, aggregations, fields) {
     var allGroups = [];
     if (aggregations) {
       var groupAggregations = parseGroupAggregations(aggregations);
@@ -791,7 +791,7 @@
           groupAggregation.fieldKey);
 
         // Then distribute the data items in the groups
-        groups = fillDataItemsInGroups(groupDefs, dataItems, groupAggregation.fieldKey);
+        groups = fillDataItemsInGroups(groupDefs, dataItems, fields[groupAggregation.fieldKey]);
 
         // Case when there is subgroups. Solve it recursively.
         var hasSubgroups = false;
@@ -805,7 +805,7 @@
         groups.forEach(function(group) {
           if (hasSubgroups) {
             group.hasSubgroups = true;
-            group.items = esAggsToKendoGroups(group.items, group.bucket);
+            group.items = esAggsToKendoGroups(group.items, group.bucket, fields);
           }
           delete group.bucket;
         });
@@ -859,16 +859,19 @@
   }
 
   // distribute data items in groups based on a field value
-  function fillDataItemsInGroups(groupDefs, dataItems, fieldKey) {
+  function fillDataItemsInGroups(groupDefs, dataItems, field) {
     var groups = [];
     dataItems.forEach(function(dataItem) {
-      var group = groupDefs.map[dataItem[fieldKey] || ""];
+      var group = groupDefs.map[dataItem[field.key] || ""];
 
       // If no exact match, then we may be in some range aggregation ?
       if (!group) {
+        var fieldValue = field.type === 'date' ? new Date(dataItem[field.key]) : dataItem[field.key];
         for (var i = 0; i < groupDefs.keys.length; i++) {
-          if (dataItem[fieldKey] >= groupDefs.keys[i]) {
-            if (!groupDefs.keys[i + 1] || dataItem[fieldKey] < groupDefs.keys[i + 1]) {
+          var groupDefValue = field.type === 'date' ? new Date(groupDefs.keys[i]) : groupDefs.keys[i];
+          if (fieldValue >= groupDefValue) {
+            var groupDefNextValue = groupDefs.keys[i + 1] && (field.type === 'date' ? new Date(groupDefs.keys[i + 1]) : groupDefs.keys[i + 1]);
+            if (!groupDefNextValue || fieldValue < groupDefNextValue) {
               group = groupDefs.map[groupDefs.keys[i]];
             }
           }
@@ -876,7 +879,7 @@
       }
 
       if (!group) {
-        throw new Error("No group found, val: " + dataItem[fieldKey] + " field: " + fieldKey);
+        throw new Error("No group found, val: " + dataItem[field.key] + " field: " + field.key);
       }
       group.items.push(dataItem);
       if (group.items.length === 1) {
