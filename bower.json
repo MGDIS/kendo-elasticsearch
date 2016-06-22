@@ -1,7 +1,7 @@
 {
   "name": "kendo-elasticsearch-datasource",
   "main": "kendo-elasticsearch.js",
-  "version": "1.4.4",
+  "version": "1.4.5",
   "homepage": "https://github.com/mgdis/kendo-elasticsearch",
   "authors": [
     "Alban Mouton <mouton-a@mgdis.fr>"
