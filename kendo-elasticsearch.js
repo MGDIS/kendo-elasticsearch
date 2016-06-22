@@ -683,11 +683,13 @@
     }
 
     // Look for a aggregate defined on group field
-    // Used to customize the bucket aggregation
+    // Used to customize the bucket aggregation for range, histograms, etc.
     var fieldAggregate;
     var groupAggregates = [];
     (group.aggregates || []).forEach(function(aggregate) {
-      if (aggregate.field === group.field) {
+      // We exclude strings that are not concerned by specific aggregations (only terms buckets)
+      // And cause bugs when counting cardinality on own group.
+      if (aggregate.field === group.field && field.type !== 'string') {
         fieldAggregate = aggregate;
       } else {
         groupAggregates.push(aggregate);
