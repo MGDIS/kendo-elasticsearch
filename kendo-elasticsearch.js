@@ -30,80 +30,19 @@
       if (!_model) {
         throw new Error("transport.schema.model must be set to use ElasticSearchDataSource");
       }
+      var _fields;
       if (_model.esMapping) {
         _model.fields = _model.fields || {};
+        _fields = _model.fields;
         data.ElasticSearchDataSource.kendoFieldsFromESMapping(
-          _model.esMapping, _model.fields);
-      }
-
-      var _fields = this._fields = _model.fields;
-      if (!_fields) {
-        throw new Error("transport.schema.model.fields/esMapping must be set");
-      }
-
-      // Associate Kendo field names to ElasticSearch field names.
-      // We have to allow ElasticSearch field names to be different
-      // because ES likes an "@" and/or dots in field names while Kendo fails on that.
-      // Filtering and aggregating can be based on a a different field if esFilterName
-      // or esAggName are defined or on a subfield if esFilterSubField or esAggSubField are defined.
-      // Typical use case is the main field is analyzed, but it has a subfield that is not
-      // (or only with a minimal analyzer)
-      for (var k in _fields) {
-        if (_fields.hasOwnProperty(k)) {
-          var field = _fields[k];
-          field.key = k;
-          field.esName = field.esName || k;
-          field.esNameSplit = field.esName.split(".");
-          field.esFullNestedPath = field.esNestedPath;
-          if (_model.esMappingKey) {
-            field.esFullNestedPath = _model.esMappingKey + "." + field.esFullNestedPath;
-          }
-          if (!field.esSearchName) {
-            field.esSearchName = field.esName;
-            if (field.hasOwnProperty("esSearchSubField")) {
-              if (field.esSearchSubField) {
-                field.esSearchName += "." + field.esSearchSubField;
-              }
-            } else if (field.type === "string" &&
-              _model.esStringSubFields &&
-              _model.esStringSubFields.search) {
-              field.esSearchName += "." + _model.esStringSubFields.search;
-            }
-            if (field.esNestedPath) {
-              field.esSearchName = field.esNestedPath + "." + field.esSearchName;
-            }
-          }
-          if (!field.esFilterName) {
-            field.esFilterName = field.esName;
-            if (field.hasOwnProperty("esFilterSubField")) {
-              if (field.esFilterSubField) {
-                field.esFilterName += "." + field.esFilterSubField;
-              }
-            } else if (field.type === "string" &&
-              _model.esStringSubFields &&
-              _model.esStringSubFields.filter) {
-              field.esFilterName += "." + _model.esStringSubFields.filter;
-            }
-            if (field.esNestedPath) {
-              field.esFilterName = field.esNestedPath + "." + field.esFilterName;
-            }
-          }
-          if (!field.esAggName) {
-            field.esAggName = field.esName;
-            if (field.hasOwnProperty("esAggSubField")) {
-              if (field.esAggSubField) {
-                field.esAggName += "." + field.esAggSubField;
-              }
-            } else if (field.type === "string" &&
-              _model.esStringSubFields &&
-              _model.esStringSubFields.agg) {
-              field.esAggName += "." + _model.esStringSubFields.agg;
-            }
-            if (field.esNestedPath) {
-              field.esAggName = field.esFullNestedPath + "." + field.esAggName;
-            }
-          }
+          _model.esMapping, _model, _model.fields);
+      } else {
+        _fields = this._fields = _model.fields;
+        if (!_fields) {
+          throw new Error("transport.schema.model.fields/esMapping must be set");
         }
+
+        fillKendoFields(_fields, _model);
       }
 
       // Get sets of nesting levels
@@ -232,7 +171,7 @@
   // the actual datasource
   // @param mapping - An elasticsearch mapping
   data.ElasticSearchDataSource.kendoFieldsFromESMapping = function(
-    mapping, fields, prefix, esPrefix, nestedPath) {
+    mapping, model, fields, prefix, esPrefix, nestedPath) {
     fields = fields || {};
     prefix = prefix || "";
     Object.keys(mapping.properties || {}).forEach(function(propertyKey) {
@@ -253,12 +192,12 @@
         }
 
         data.ElasticSearchDataSource.kendoFieldsFromESMapping(
-          property, fields, prefixedName, "", subNestedPath);
+          property, model, fields, prefixedName, "", subNestedPath);
       } else if (property.properties) {
 
         // Case where the property is a non nested object with properties
         data.ElasticSearchDataSource.kendoFieldsFromESMapping(
-          property, fields, prefixedName, esName, nestedPath);
+          property, model, fields, prefixedName, esName, nestedPath);
       } else if (property.type === "object") {
 
         // Case where the property is a non nested object with zero subproperties. do nothing.
@@ -298,8 +237,76 @@
       }
     });
 
+    fillKendoFields(fields, model);
+
     return fields;
   };
+
+  // Associate Kendo field names to ElasticSearch field names.
+  // We have to allow ElasticSearch field names to be different
+  // because ES likes an "@" and/or dots in field names while Kendo fails on that.
+  // Filtering and aggregating can be based on a a different field if esFilterName
+  // or esAggName are defined or on a subfield if esFilterSubField or esAggSubField are defined.
+  // Typical use case is the main field is analyzed, but it has a subfield that is not
+  // (or only with a minimal analyzer)
+  function fillKendoFields(fields, model) {
+    for (var k in fields) {
+      if (fields.hasOwnProperty(k)) {
+        var field = fields[k];
+        field.esName = field.esName || k;
+        field.esNameSplit = field.esName.split(".");
+        field.esFullNestedPath = field.esNestedPath;
+        if (model.esMappingKey) {
+          field.esFullNestedPath = model.esMappingKey + "." + field.esFullNestedPath;
+        }
+        if (!field.esSearchName) {
+          field.esSearchName = field.esName;
+          if (field.hasOwnProperty("esSearchSubField")) {
+            if (field.esSearchSubField) {
+              field.esSearchName += "." + field.esSearchSubField;
+            }
+          } else if (field.type === "string" &&
+            model.esStringSubFields &&
+            model.esStringSubFields.search) {
+            field.esSearchName += "." + model.esStringSubFields.search;
+          }
+          if (field.esNestedPath) {
+            field.esSearchName = field.esNestedPath + "." + field.esSearchName;
+          }
+        }
+        if (!field.esFilterName) {
+          field.esFilterName = field.esName;
+          if (field.hasOwnProperty("esFilterSubField")) {
+            if (field.esFilterSubField) {
+              field.esFilterName += "." + field.esFilterSubField;
+            }
+          } else if (field.type === "string" &&
+            model.esStringSubFields &&
+            model.esStringSubFields.filter) {
+            field.esFilterName += "." + model.esStringSubFields.filter;
+          }
+          if (field.esNestedPath) {
+            field.esFilterName = field.esNestedPath + "." + field.esFilterName;
+          }
+        }
+        if (!field.esAggName) {
+          field.esAggName = field.esName;
+          if (field.hasOwnProperty("esAggSubField")) {
+            if (field.esAggSubField) {
+              field.esAggName += "." + field.esAggSubField;
+            }
+          } else if (field.type === "string" &&
+            model.esStringSubFields &&
+            model.esStringSubFields.agg) {
+            field.esAggName += "." + model.esStringSubFields.agg;
+          }
+          if (field.esNestedPath) {
+            field.esAggName = field.esFullNestedPath + "." + field.esAggName;
+          }
+        }
+      }
+    }
+  }
 
   // Transform sort instruction into some object suitable for Elasticsearch
   // Also deal with sorting the different nesting levels
@@ -866,6 +873,7 @@
     var groups = [];
     dataItems.forEach(function(dataItem) {
       var group = groupDefs.map[dataItem[field.key] || ""];
+
       // If no exact match, then we may be in some range aggregation ?
       if (!group) {
         var fieldValue = field.type === 'date' ? new Date(dataItem[field.key]) : dataItem[field.key];
