@@ -30,26 +30,22 @@
       if (!_model) {
         throw new Error("transport.schema.model must be set to use ElasticSearchDataSource");
       }
-      var _fields;
       if (_model.esMapping) {
         _model.fields = _model.fields || {};
-        _fields = _model.fields;
         data.ElasticSearchDataSource.kendoFieldsFromESMapping(
           _model.esMapping, _model, _model.fields);
       } else {
-        _fields = this._fields = _model.fields;
-        if (!_fields) {
+        if (!_model.fields) {
           throw new Error("transport.schema.model.fields/esMapping must be set");
         }
-
-        fillKendoFields(_fields, _model);
+        fillKendoFields(_model.fields, _model);
       }
 
       // Get sets of nesting levels
       var _nestedFields = {};
       var _subTypes = {};
-      Object.keys(_fields).forEach(function(fieldKey) {
-        var field = _fields[fieldKey];
+      Object.keys(_model.fields).forEach(function(fieldKey) {
+        var field = _model.fields[fieldKey];
         if (field.esNestedPath) {
           _nestedFields[field.esNestedPath] = _nestedFields[field.esNestedPath] || [];
           _nestedFields[field.esNestedPath].push(field.esName);
@@ -78,12 +74,12 @@
         }
 
         // Transform kendo sort params in a ES sort list
-        esParams.sort = kendoSortToES(sortParams, _fields);
+        esParams.sort = kendoSortToES(sortParams, _model.fields);
 
         // Transform kendo filters into a ES query using a query_string request
         esParams.query = {
           filtered: {
-            filter: kendoFiltersToES(data.filter || [], _fields)
+            filter: kendoFiltersToES(data.filter || [], _model.fields)
           }
         };
 
@@ -97,18 +93,18 @@
         );
 
         // Fetch only the required list of fields from ES
-        esParams._source = Object.keys(_fields)
+        esParams._source = Object.keys(_model.fields)
           .filter(function(k) {
-            return !_fields[k].esNestedPath && !_fields[k].esParentType && !_fields[k].esChildType;
+            return !_model.fields[k].esNestedPath && !_model.fields[k].esParentType && !_model.fields[k].esChildType;
           })
           .map(function(k) {
-            return _fields[k].esName;
+            return _model.fields[k].esName;
           });
 
         // Transform kendo aggregations into ES aggregations
         esParams.aggs = kendoAggregationToES(
           data.aggregate,
-          _fields,
+          _model.fields,
           _nestedFields,
           _model.esMappingKey,
           esParams.query.filtered.filter
@@ -118,7 +114,7 @@
         kendoGroupsToES(
           esParams.aggs,
           data.group,
-          _fields,
+          _model.fields,
           _nestedFields,
           _model.esMappingKey,
           esParams.query.filtered.filter
@@ -132,9 +128,9 @@
       // Parse the results from elasticsearch to return data items,
       // total and aggregates for Kendo grid
       schema.parse = function(response) {
-        var dataItems = esHitsToDataItems(response.hits.hits, _fields);
+        var dataItems = esHitsToDataItems(response.hits.hits, _model.fields);
         var aggregates = esAggToKendoAgg(response.aggregations);
-        var groups = esAggsToKendoGroups(dataItems, response.aggregations, _fields);
+        var groups = esAggsToKendoGroups(dataItems, response.aggregations, _model.fields);
 
         return {
           total: response.hits.total,
