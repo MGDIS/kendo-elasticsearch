@@ -72,7 +72,7 @@
                   type: 'string',
                   esNestedPath: 'addresses',
                   esName: 'comment.content'
-                },
+                },*/
                 addressCommentDate: {
                   type: 'date',
                   esNestedPath: 'addresses',
@@ -82,7 +82,12 @@
                   type: 'date',
                   esNestedPath: 'addresses',
                   esName: 'comment.date'
-                },*/
+                },
+                addressCommentDateMonth: {
+                  type: 'date',
+                  esNestedPath: 'addresses',
+                  esName: 'comment.date'
+                },
                 /*telephoneValue: {
                   type: 'string',
                   esNestedPath: 'addresses.telephones',
@@ -97,24 +102,24 @@
                   type: 'number',
                   esNestedPath: 'addresses.telephones',
                   esName: 'used'
-                },
+                }
               }
             }
           },
 
-          group: [{
+          /*group: [{
             field: "addressCountry",
             dir: "asc",
             aggregates: [{
               field: 'telephoneUsed',
               aggregate: 'max'
             }]
-          }],
-          aggregate: [{
+          }],*/
+          /*aggregate: [{
             field: 'telephoneUsed',
             aggregate: 'max'
-          }],
-          /*group: {
+          }],*/
+          group: [{
             field: "addressCommentDateYear",
             dir: "desc",
             aggregates: [{
@@ -124,17 +129,25 @@
               }]
               // see https://www.elastic.co/guide/en/elasticsearch/reference/2.0/search-aggregations-bucket-datehistogram-aggregation.html
               // if defined the bucket aggregation will be a date_histogram aggregation
-          },*/
+          }, {
+            field: "addressCommentDateMonth",
+            dir: "desc",
+            aggregates: [{
+                field: "addressCommentDateMonth",
+                aggregate: "date_histogram",
+                interval: "month"
+              }]
+            }],
 
           sort: {
             field: 'addressCountry',
             dir: 'asc'
-          },
+          }/*,
           filter: [{
             field: 'addressCountry',
             operator: 'eq',
             value: 'Finland'
-          }]
+          }]*/
         }),
 
         // other grid options besides the datasource
@@ -163,7 +176,7 @@
         }, {
           field: 'addressCountry',
           title: 'Country',
-          groupHeaderTemplate: "Country: #=value#, Count: #=count#",
+          //groupHeaderTemplate: "Country: #=value#, Count: #=count#",
         }/*, {
           field: 'addressCity',
           title: 'City'
@@ -187,12 +200,12 @@
           title: 'Account amount',
           footerTemplate: "Max: #=max#",
           groupFooterTemplate: "Max: #=max#"
-        }*/, {
+        }*/, /*{
           field: 'telephoneUsed',
           title: 'Tel used',
           footerTemplate: "Max: #=max#",
           groupFooterTemplate: "Max: #=max#"
-        }]
+        }*/]
       });
     });
   </script>

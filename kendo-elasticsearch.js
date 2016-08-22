@@ -655,37 +655,42 @@
   // Transform kendo groups declaration into ES bucket aggregations
   function kendoGroupsToES(aggs, groups, fields, nestedFields, esMappingKey, filter) {
     var previousLevelAggs = [aggs];
+    var previousLevelNestedPath = null;
     groups.forEach(function(group) {
+      var field = fields[group.field];
       var nextLevelAggs = kendoGroupToES(group, fields, nestedFields, esMappingKey, filter);
+
+      var aggs = {};
+      if (field.esNestedPath && field.esNestedPath.indexOf(previousLevelNestedPath) !== 0) {
+        aggs[field.esNestedPath + "_nested"] = aggs[field.esNestedPath + "_nested"] || {
+          nested: {
+            path: field.esFullNestedPath
+          },
+          aggs: {}
+        };
+        aggs[field.esNestedPath + "_nested"].aggs[group.field + "_group"] = nextLevelAggs.group;
+        aggs[field.esNestedPath + "_nested"].aggs[group.field + "_missing"] = nextLevelAggs.missing;
+      } else {
+        aggs[group.field + "_group"] = nextLevelAggs.group;
+        aggs[group.field + "_missing"] = nextLevelAggs.missing;
+      } // 3rd case for nested path that is not child of the previous group
+
       previousLevelAggs.forEach(function(previousLevelAgg) {
-        Object.keys(nextLevelAggs).forEach(function(nextLevelAggKey) {
-          previousLevelAgg[nextLevelAggKey] = nextLevelAggs[nextLevelAggKey];
+        Object.keys(aggs).forEach(function(aggKey) {
+          previousLevelAgg[aggKey] = aggs[aggKey];
         });
       });
-      previousLevelAggs = Object.keys(nextLevelAggs).map(function(nextLevelAggKey) {
-        return nextLevelAggs[nextLevelAggKey].aggregations;
+      previousLevelAggs = Object.keys(nextLevelAggs).map(function(aggKey) {
+        return nextLevelAggs[aggKey].aggregations;
       });
+      previousLevelNestedPath = field.esNestedPath;
     });
   }
 
   function kendoGroupToES(group, fields, nestedFields, esMappingKey, filter) {
     var field = fields[group.field];
-    var aggs = {};
-    var groupAgg;
-    var missingAgg;
-    if (field.esNestedPath) {
-      aggs[field.esNestedPath + "_nested"] = aggs[field.esNestedPath + "_nested"] || {
-        nested: {
-          path: field.esFullNestedPath
-        },
-        aggs: {}
-      };
-      groupAgg = aggs[field.esNestedPath + "_nested"].aggs[group.field + "_group"] = {};
-      missingAgg = aggs[field.esNestedPath + "_nested"].aggs[group.field + "_missing"] = {};
-    } else {
-      groupAgg = aggs[group.field + "_group"] = {};
-      missingAgg = aggs[group.field + "_missing"] = {};
-    }
+    var groupAgg = {};
+    var missingAgg = {};
 
     // Look for a aggregate defined on group field
     // Used to customize the bucket aggregation for range, histograms, etc.
@@ -730,7 +735,10 @@
     groupAgg.aggregations = esGroupAggregates;
     missingAgg.aggregations = esGroupAggregates;
 
-    return aggs;
+    return {
+      group: groupAgg,
+      missing: missingAgg
+    };
   }
 
   // Transform aggregation results from a ES query to kendo aggregates
