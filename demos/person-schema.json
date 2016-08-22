@@ -1,6 +1,6 @@
 {
   "type": "object",
-  "required": ["birthDate", "name", "siblings", "active"],
+  "required": ["name", "siblings", "active"],
   "properties": {
     "birthDate": {
       "type": "string",

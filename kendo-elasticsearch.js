@@ -853,7 +853,8 @@
       value: "",
       hasSubgroups: false,
       aggregates: esAggToKendoAgg(missingAggregation),
-      items: []
+      items: [],
+      bucket: missingAggregation
     };
     groupsMap[""].aggregates[fieldKey] = {
       count: missingAggregation.doc_count
