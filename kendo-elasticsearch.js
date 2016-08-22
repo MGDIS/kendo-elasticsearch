@@ -249,6 +249,7 @@
     for (var k in fields) {
       if (fields.hasOwnProperty(k)) {
         var field = fields[k];
+        field.key = k;
         field.esName = field.esName || k;
         field.esNameSplit = field.esName.split(".");
         field.esFullNestedPath = field.esNestedPath;
