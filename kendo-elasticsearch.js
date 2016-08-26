@@ -318,7 +318,8 @@
       var esSortItem = {};
       esSortItem[field.esFilterName] = {
         order: sortItem.dir,
-        missing: "_last"
+        missing: "_last",
+        mode: sortItem.dir === 'asc' ? 'min' : 'max'
       };
       return esSortItem;
     });
