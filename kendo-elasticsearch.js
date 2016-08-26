@@ -63,7 +63,7 @@
       // Prepare the content of the query that will be sent to ES
       // based on the kendo data structure
       initOptions.transport.parameterMap = function(data) {
-        var sortParams = arrayify(data.sort || data.group);
+        var sortParams = prepareSortParams(data.sort, data.group, data.columns);
 
         var esParams = {};
         if (data.skip) {
@@ -990,7 +990,7 @@
               dataItem[fieldKey] = [null];
             }
           } else {
-            dataItem[fieldKey] = values.join(field.esMultiSeparator || ";");
+            dataItem[fieldKey] = values.join(field.esMultiSeparator || "\n");
           }
         }
       });
@@ -1085,19 +1085,39 @@
     return value.replace(/[^a-zA-z0-9_$]/g, "_");
   }
 
-  // Helper functions for conversion of query parameters from Kendo to ElasticSearch format
-  function arrayify(myArg) {
-    var _argArray = [];
-
-    if (myArg && myArg.constructor == Array) {
-      _argArray = myArg;
+  // Prepare sort parameters for easier transformation to ES later on
+  function prepareSortParams(sort, groups) {
+    // first fix the type of the param that can be object of group
+    var sortArray = [];
+    if (sort && sort.constructor == Array) {
+      sortArray = sort;
     } else {
-      if (myArg) {
-        _argArray.push(myArg);
+      if (sort) {
+        sortArray.push(sort);
       }
     }
 
-    return _argArray;
+    // Sort instructions for the groups are first
+    var fullSort = [];
+    (groups || []).forEach(function(group) {
+      var matchingSort = sortArray.filter(function(sortItem) {
+        return sortItem.field === group.field;
+      });
+      if (matchingSort.length) {
+        fullSort.push(matchingSort[0]);
+        sortArray.splice(sortArray.indexOf(matchingSort[0]), 1);
+      } else {
+        fullSort.push({
+          field: group.field,
+          dir: group.dir || 'asc'
+        });
+      }
+    });
+
+    // Then original sort instructions are added
+    fullSort = fullSort.concat(sortArray);
+
+    return fullSort;
   }
 
 })(window.jQuery, window.kendo);
