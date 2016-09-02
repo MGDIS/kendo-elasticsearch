@@ -26,65 +26,69 @@
 
   <script>
     $(document).ready(function() {
-      $('#grid').kendoGrid({
 
-        // LOOK HERE !
-        // Inspired by this http://www.telerik.com/forums/grid-filtering-in-javascript---not-equal-to-null
-        filterMenuInit: function(e) {
-          var selects = e.container.find("select:not(.k-filter-and, k-filter-or)");
-          var inputs = e.container.find("input");
+      var dataSourceOpts = {
+        transport: {
+          read: {
+            url: 'http://localhost:9200/kendo-elasticsearch-demo/organization/_search/'
+          }
+        },
+        pageSize: 10,
 
-          selects.each(function(i) {
-            var select = $(this);
-            var input = $(inputs[i]);
-            select.change(function() {
-              if (select.val() === 'exists') {
-                input.val('-- exists --').change();
+        schema: {
+          model: {
+            esMappingKey: 'organization',
+            // Use this to specify that sub fields of string fields should be used for pattern based filtering and aggregations
+            // If the subfields are different by field use 'esFilterSubField' and/or 'esAggSubField' on each filed definition
+            esStringSubFields: {
+              filter: 'lowercase',
+              agg: 'raw'
+            },
+            fields: {
+              companyName: {
+                type: 'string'
+              },
+              addressCountry: {
+                type: 'string',
+                esNestedPath: 'addresses',
+                esName: 'country'
               }
-              if (select.val() === 'missing') {
-                input.val('-- missing --').change();
-              }
-            });
-          });
+            }
+          }
         },
 
-        // configure the datasource to be an ElasticSearchDataSource
-        dataSource: new kendo.data.ElasticSearchDataSource({
-          transport: {
-            read: {
-              url: 'http://localhost:9200/kendo-elasticsearch-demo/organization/_search/'
-            }
-          },
-          pageSize: 10,
+        sort: {
+          field: 'companyName',
+          dir: 'desc'
+        }
+      };
 
-          schema: {
-            model: {
-              esMappingKey: 'organization',
-              // Use this to specify that sub fields of string fields should be used for pattern based filtering and aggregations
-              // If the subfields are different by field use 'esFilterSubField' and/or 'esAggSubField' on each filed definition
-              esStringSubFields: {
-                filter: 'lowercase',
-                agg: 'raw'
-              },
-              fields: {
-                companyName: {
-                  type: 'string'
-                },
-                addressCountry: {
-                  type: 'string',
-                  esNestedPath: 'addresses',
-                  esName: 'country'
-                }
-              }
+      // LOOK HERE FOR MISSING AND EXISTS FILTERS
+      // We override the internal filter function from the filter menu widget in order to accept empty values
+      // on the specific 'missing' and 'exists' operators
+      kendo.ui.FilterMenu.prototype.filter = function(expression) {
+        var field = dataSourceOpts.schema.model.fields[this.field];
+        expression.filters.forEach(function(filter) {
+          if (filter.operator === 'exists' || filter.operator === 'missing') {
+            if (field.type === 'date') {
+              filter.value = new Date().toISOString();
+            } else if (field.type === 'string') {
+              filter.value = '-- ' + filter.operator + ' --'
             }
-          },
-
-          sort: {
-            field: 'companyName',
-            dir: 'desc'
           }
-        }),
+        });
 
+        // The following is the content of the original function
+        expression = this._merge(expression);
+        if (expression.filters.length) {
+          this.dataSource.filter(expression);
+        }
+      }
+
+
+      $('#grid').kendoGrid({
+        // configure the datasource to be an ElasticSearchDataSource
+        dataSource: new kendo.data.ElasticSearchDataSource(dataSourceOpts),
         // other grid options besides the datasource
         sortable: true,
         pageable: true,

@@ -88,20 +88,42 @@
           field: "birthDateMonth",
           dir: "desc",
           aggregates: [{
-              field: "birthDateMonth",
-              aggregate: "date_histogram",
-              interval: "month"
-            }]
+            field: "birthDateMonth",
+            aggregate: "date_histogram",
+            interval: "month"
+          }]
         }, {
           field: "birthDateDay",
           dir: "desc",
           aggregates: [{
-              field: "birthDateDay",
-              aggregate: "date_histogram",
-              interval: "day"
-            }]
+            field: "birthDateDay",
+            aggregate: "date_histogram",
+            interval: "day"
+          }]
         }]
       };
+
+      // LOOK HERE FOR MISSING AND EXISTS FILTERS
+      // We override the internal filter function from the filter menu widget in order to accept empty values
+      // on the specific 'missing' and 'exists' operators
+      kendo.ui.FilterMenu.prototype.filter = function(expression) {
+        var field = dataSourceOpts.schema.model.fields[this.field];
+        expression.filters.forEach(function(filter) {
+          if (filter.operator === 'exists' || filter.operator === 'missing') {
+            if (field.type === 'date') {
+              filter.value = new Date().toISOString();
+            } else if (field.type === 'string') {
+              filter.value = '-- ' + filter.operator + ' --'
+            }
+          }
+        });
+
+        // The following is the content of the original function
+        expression = this._merge(expression);
+        if (expression.filters.length) {
+          this.dataSource.filter(expression);
+        }
+      }
 
       var gridOptions = {
         sortable: true,
@@ -116,7 +138,19 @@
               startswith: "Starts with",
               contains: "Contains",
               doesnotcontain: "Does not contain",
-              endswith: "Ends with"
+              endswith: "Ends with",
+              exists: 'Exists',
+              missing: 'Missing'
+            },
+            date: {
+              eq: "Is equal to",
+              neq: "Is not equal to",
+              gte: "Is after or equal to",
+              gt: "Is after",
+              lte: "Is before or equal to",
+              lt: "Is before",
+              exists: 'Exists',
+              missing: 'Missing'
             }
           }
         },
