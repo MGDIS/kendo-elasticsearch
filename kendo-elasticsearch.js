@@ -548,7 +548,7 @@
     }
 
     var fieldEscaped = asESParameter(fieldName);
-    var valueEscaped = asESParameter(kendoFilter.value);
+    var valueEscaped = asESParameter(kendoFilter.value, kendoFilter.operator);
 
     var simpleBinaryOperators = {
       eq: "",
@@ -1070,13 +1070,25 @@
   }
 
   // Escape values so that they are suitable as an elasticsearch query_string query parameter
-  function asESParameter(value) {
+  var escapeValueRegexp = /[+\-&|!()\{}\[\]^:"~*?:\/ ]/g;
+  var escapeSearchValueRegexp = /[+\-&|!()\{}\[\]^::\/]/g;
+  function asESParameter(value, operator) {
     if (value.constructor == Date) {
       value = value.toISOString();
     } else if (typeof value === "boolean" || typeof value === "number") {
       value = "" + value;
     }
-    return value.replace("\\", "\\\\").replace(/[+\-&|!()\{}\[\]^:"~*?:\/ ]/g, "\\$&");
+
+    // For the special 'search' operator we allow some wildcard and other characters
+    if (operator === 'search') {
+      value = value.replace("\\", "\\\\");
+      if (((value.match(/"/g) || []).length % 2) === 1) {
+        value = value.replace(/"/g, '\\"');
+      }
+      value = value.replace(escapeSearchValueRegexp, "\\$&")
+      return value;
+    }
+    return value.replace("\\", "\\\\").replace(escapeValueRegexp, "\\$&");
   }
 
   // Get a property key and transform it in a suitable key for kendo
