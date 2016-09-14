@@ -358,8 +358,8 @@
             query_string: {
               query: kendoFilterToESParam(filter, fields),
 
-              // lowercase terms from wildcards as they are not analyzed
-              lowercase_expanded_terms: true
+              // support uppercase/lowercase and accents
+              analyze_wildcard: true
             }
           }
         };
