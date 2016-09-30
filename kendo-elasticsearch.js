@@ -73,6 +73,11 @@
           esParams.size = data.take;
         }
 
+        if (initOptions.aggregationsOnly) {
+          esParams.from = 0;
+          esParams.size = 0;
+        }
+
         // Transform kendo sort params in a ES sort list
         esParams.sort = kendoSortToES(sortParams, _model.fields);
 
@@ -130,7 +135,7 @@
       schema.parse = function(response) {
         var dataItems = esHitsToDataItems(response.hits.hits, _model.fields);
         var aggregates = esAggToKendoAgg(response.aggregations);
-        var groups = esAggsToKendoGroups(dataItems, response.aggregations, _model.fields);
+        var groups = esAggsToKendoGroups(dataItems, response.aggregations, _model.fields, initOptions.aggregationsOnly);
 
         return {
           total: response.hits.total,
@@ -310,9 +315,6 @@
   function kendoSortToES(sort, fields, nestedPath) {
     return sort.filter(function(sortItem) {
       var field = fields[sortItem.field];
-      if (!field) {
-        return false;
-      }
       return field.esNestedPath === nestedPath ||
         field.esParentType === nestedPath ||
         field.esChildType === nestedPath;
@@ -583,7 +585,7 @@
           if (field.esNestedPath || field.esParentType || field.esChildType) {
             return "_exists_:" + fieldEscaped + " AND NOT(" + fieldEscaped + ":\"\")";
           } else {
-            return "_missing_:" + fieldEscaped + " OR " + fieldEscaped + ":\"\"";
+            return "_missing_:" + fieldEscaped + " OR (" + fieldEscaped + ":\"\")";
           }
           break;
         case "exists":
@@ -795,7 +797,7 @@
 
   // Transform ES bucket aggregations into kendo groups of data items
   // See doc here for format of groups: http://docs.telerik.com/KENDO-UI/api/javascript/data/datasource#configuration-schema.groups
-  function esAggsToKendoGroups(dataItems, aggregations, fields) {
+  function esAggsToKendoGroups(dataItems, aggregations, fields, aggregationsOnly) {
     var allGroups = [];
     if (aggregations) {
       var groupAggregations = parseGroupAggregations(aggregations);
@@ -809,8 +811,14 @@
           groupAggregation.missing,
           groupAggregation.fieldKey);
 
-        // Then distribute the data items in the groups
-        groups = fillDataItemsInGroups(groupDefs, dataItems, fields[groupAggregation.fieldKey]);
+        if (!aggregationsOnly) {
+          // Then distribute the data items in the groups
+          groups = fillDataItemsInGroups(groupDefs, dataItems, fields[groupAggregation.fieldKey]);
+        } else {
+          groups = groupDefs.keys.map(function(key) {
+            return groupDefs.map[key];
+          });
+        }
 
         // Case when there is subgroups. Solve it recursively.
         var hasSubgroups = false;
@@ -824,7 +832,7 @@
         groups.forEach(function(group) {
           if (hasSubgroups) {
             group.hasSubgroups = true;
-            group.items = esAggsToKendoGroups(group.items, group.bucket, fields);
+            group.items = esAggsToKendoGroups(group.items, group.bucket, fields, aggregationsOnly);
           }
           delete group.bucket;
         });
@@ -1075,6 +1083,7 @@
   // Escape values so that they are suitable as an elasticsearch query_string query parameter
   var escapeValueRegexp = /[+\-&|!()\{}\[\]^:"~*?:\/ ]/g;
   var escapeSearchValueRegexp = /[+\-&|!()\{}\[\]^::\/]/g;
+
   function asESParameter(value, operator) {
     if (value.constructor == Date) {
       value = value.toISOString();
@@ -1088,7 +1097,7 @@
       if (((value.match(/"/g) || []).length % 2) === 1) {
         value = value.replace(/"/g, '\\"');
       }
-      value = value.replace(escapeSearchValueRegexp, "\\$&");
+      value = value.replace(escapeSearchValueRegexp, "\\$&")
       return value;
     }
     return value.replace("\\", "\\\\").replace(escapeValueRegexp, "\\$&");
@@ -1125,7 +1134,7 @@
       } else {
         fullSort.push({
           field: group.field,
-          dir: group.dir || 'asc'
+          dir: group.dir ||  'asc'
         });
       }
     });
