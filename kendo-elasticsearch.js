@@ -315,6 +315,9 @@
   function kendoSortToES(sort, fields, nestedPath) {
     return sort.filter(function(sortItem) {
       var field = fields[sortItem.field];
+      if (!field) {
+        return false;
+      }
       return field.esNestedPath === nestedPath ||
         field.esParentType === nestedPath ||
         field.esChildType === nestedPath;
