@@ -583,7 +583,7 @@
           if (field.esNestedPath || field.esParentType || field.esChildType) {
             return "_exists_:" + fieldEscaped + " AND NOT(" + fieldEscaped + ":\"\")";
           } else {
-            return "_missing_:" + fieldEscaped + " OR NOT(" + fieldEscaped + ":\"\")";
+            return "_missing_:" + fieldEscaped + " OR " + fieldEscaped + ":\"\"";
           }
           break;
         case "exists":
