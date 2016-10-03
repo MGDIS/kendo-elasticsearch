@@ -585,14 +585,25 @@
         case "missing":
           // Missing in a nested document is implemented as a "not nested exists"
           // see https://github.com/elastic/elasticsearch/issues/3495
+          var expression;
           if (field.esNestedPath || field.esParentType || field.esChildType) {
-            return "_exists_:" + fieldEscaped + " AND NOT(" + fieldEscaped + ":\"\")";
+            expression = "_exists_:" + fieldEscaped;
+            if (field.type === "string") {
+              expression += " AND NOT(" + fieldEscaped + ":\"\")";
+            }
           } else {
-            return "_missing_:" + fieldEscaped + " OR (" + fieldEscaped + ":\"\")";
+            expression = "_missing_:" + fieldEscaped;
+            if (field.type === "string") {
+              expression += " OR (" + fieldEscaped + ":\"\")";
+            }
           }
-          break;
+          return expression;
         case "exists":
-          return "_exists_:" + fieldEscaped + " AND NOT(" + fieldEscaped + ":\"\")";
+          var expression = "_exists_:" + fieldEscaped;
+          if (field.type === "string") {
+            expression += " AND NOT(" + fieldEscaped + ":\"\")";
+          }
+          return expression;
         default:
           throw new Error("Unsupported Kendo filter operator: " + kendoFilter.operator);
       }
