@@ -351,7 +351,8 @@
       throw new Error("Unsupported filter object: " + kendoFilters);
     }
 
-    var esFilters = [];
+    var esFilters = []
+    var esNestedFilters = {};
 
     filters.forEach(function(filter) {
       if (filter.logic) {
@@ -372,16 +373,20 @@
           }
         };
         if (field.esNestedPath) {
-          esFilter = {
+          var esNestedFilter = esNestedFilters[field.esNestedPath] || {
             nested: {
               path: field.esFullNestedPath,
-              filter: esFilter
+              filter: {}
             }
           };
-          if (filter.operator === 'missing') {
-            esFilter = {
-              not: esFilter
-            };
+          esNestedFilter.nested.filter[logicalConnective] = esNestedFilter.nested.filter[logicalConnective] || {
+            filters: []
+          };
+          esNestedFilter.nested.filter[logicalConnective].filters.push(esFilter);
+          if (!esNestedFilters[field.esNestedPath]) {
+            esFilter = esNestedFilters[field.esNestedPath] = esNestedFilter;
+          } else {
+            esFilter = null;
           }
         } else if (field.esParentType) {
           esFilter = {
@@ -390,11 +395,6 @@
               filter: esFilter
             }
           };
-          if (filter.operator === 'missing') {
-            esFilter = {
-              not: esFilter
-            };
-          }
         } else if (field.esChildType) {
           esFilter = {
             has_child: {
@@ -402,14 +402,12 @@
               filter: esFilter
             }
           };
-          if (filter.operator === 'missing') {
-            esFilter = {
-              not: esFilter
-            };
-          }
         }
 
-        esFilters.push(esFilter);
+        if (esFilter) {
+          esFilters.push(esFilter);
+        }
+
       }
     });
 
@@ -583,19 +581,15 @@
         case "endswith":
           return fieldEscaped + ":*" + valueEscaped;
         case "missing":
-          // Missing in a nested document is implemented as a "not nested exists"
-          // see https://github.com/elastic/elasticsearch/issues/3495
-          var expression;
-          if (field.esNestedPath || field.esParentType || field.esChildType) {
-            expression = "_exists_:" + fieldEscaped;
-            if (field.type === "string") {
-              expression += " AND NOT(" + fieldEscaped + ":\"\")";
-            }
-          } else {
-            expression = "_missing_:" + fieldEscaped;
-            if (field.type === "string") {
-              expression += " OR (" + fieldEscaped + ":\"\")";
-            }
+          if (field.esNestedPath || field.esParentType || field.esChildType) {
+            // missing in a nested document should be implemented as a "not nested exists"
+            // but this is not really doable when mixing with other filters
+            // see https://github.com/elastic/elasticsearch/issues/3495
+            throw new Error("missing filter is not supported on nested fields");
+          }
+          expression = "_missing_:" + fieldEscaped;
+          if (field.type === "string") {
+            expression += " OR (" + fieldEscaped + ":\"\")";
           }
           return expression;
         case "exists":
