@@ -832,7 +832,7 @@
         var hasSubgroups = false;
         if (groupAggregation.group.buckets && groupAggregation.group.buckets[0]) {
           Object.keys(groupAggregation.group.buckets[0]).forEach(function(bucketKey) {
-            if (bucketKey.substr(bucketKey.length - 6) === "_group") {
+            if (bucketKey.substr(bucketKey.length - 6) === "_group" || bucketKey.substr(bucketKey.length - 7) === "_nested") {
               hasSubgroups = true;
             }
           });
