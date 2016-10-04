@@ -134,6 +134,10 @@
       // total and aggregates for Kendo grid
       schema.parse = function(response) {
         var dataItems = esHitsToDataItems(response.hits.hits, _model.fields);
+
+        // cheat. Root aggregations used as a pseudo buckets with doc_count = total number of results
+        // used to process missing counts
+        response.aggregations.doc_count = response.hits.total;
         var aggregates = esAggToKendoAgg(response.aggregations);
         var groups = esAggsToKendoGroups(dataItems, response.aggregations, _model.fields, initOptions.aggregationsOnly);
 
@@ -780,11 +784,14 @@
 
   // Extraction aggregations from ES query result that will be used to group
   // data items
-  function parseGroupAggregations(aggregations) {
+  function parseGroupAggregations(aggregations, missingNested) {
     var groupAggregations = Object.keys(aggregations).filter(function(aggKey) {
       return aggKey.substr(aggKey.length - 6) === "_group";
     }).map(function(aggKey) {
       var fieldKey = aggKey.substr(0, aggKey.length - 6);
+      if (missingNested) {
+        aggregations[fieldKey + "_missing"].doc_count += missingNested;
+      }
       return {
         group: aggregations[aggKey],
         missing: aggregations[fieldKey + "_missing"],
@@ -796,8 +803,12 @@
     Object.keys(aggregations).filter(function(aggKey) {
       return aggKey.substr(aggKey.length - 7) === "_nested";
     }).forEach(function(aggKey) {
+      // 'missing' count on a nested group aggregation =
+      //      'document without nested objects' + 'nested objects with missing field'
+      // and 'document without nested objects' is equal to 'number of documents' - 'number of nested documents'
+      var missingNested = aggregations.doc_count - aggregations[aggKey].doc_count;
       groupAggregations =
-        groupAggregations.concat(parseGroupAggregations(aggregations[aggKey]));
+        groupAggregations.concat(parseGroupAggregations(aggregations[aggKey], missingNested));
     });
 
     return groupAggregations;
