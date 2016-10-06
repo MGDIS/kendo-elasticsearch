@@ -137,7 +137,9 @@
 
         // cheat. Root aggregations used as a pseudo buckets with doc_count = total number of results
         // used to process missing counts
-        response.aggregations.doc_count = response.hits.total;
+        if (response.aggregations) {
+          response.aggregations.doc_count = response.hits.total;
+        }
         var aggregates = esAggToKendoAgg(response.aggregations);
         var groups = esAggsToKendoGroups(dataItems, response.aggregations, _model.fields, initOptions.aggregationsOnly);
 
