@@ -1103,7 +1103,7 @@
 
   // Escape values so that they are suitable as an elasticsearch query_string query parameter
   var escapeValueRegexp = /[+\-&|!()\{}\[\]^:"~*?:\/ ]/g;
-  var escapeSearchValueRegexp = /[+\-&|!()\{}\[\]^::\/]/g;
+  var escapeSearchValueRegexp = /[+\-&|!()\{}\[\]^:~:\/]/g;
 
   function asESParameter(value, operator) {
     if (value.constructor == Date) {
