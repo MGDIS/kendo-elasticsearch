@@ -32,7 +32,7 @@ var config = {
         exclude: /(node_modules|bower_components)/
       },
       {
-        test: /(\.jss)$/,
+        test: /(\.js)$/,
         loader: 'eslint-loader',
         exclude: /node_modules/
       }

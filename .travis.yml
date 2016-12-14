@@ -13,10 +13,9 @@ node_js:
   - '7'
 
 install:
-  - npm install
-  - npm install -g bower
-  - bower install
+  - yarn
+  - yarn run bower
 
 script:
-  - npm test
-  - npm run build
+  - yarn test
+  - yarn run build
