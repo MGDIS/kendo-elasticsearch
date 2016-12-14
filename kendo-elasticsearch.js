@@ -766,6 +766,7 @@
     var aggregates = previousAggregates || {};
     aggregations = aggregations || {};
     Object.keys(aggregations).forEach(function(aggKey) {
+      if (!aggregations[aggKey]) return;
       ["count", "min", "max", "average", "sum"].forEach(function(aggType) {
         var suffixLength = aggType.length + 1;
         if (aggKey.substr(aggKey.length - suffixLength) === "_" + aggType) {

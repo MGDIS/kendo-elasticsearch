@@ -29,6 +29,7 @@ Clone the project and create the datasets:
     git clone https://github.com/MGDIS/kendo-elasticsearch.git
     cd kendo-elasticsearch
     npm install
+    bower install
     node demos/create-datasets.js
 
 Afterwards you just have to open the HTML files from the demos folder in your browser.
