@@ -1,6 +1,6 @@
 {
   "name": "kendo-elasticsearch-datasource",
-  "main": "kendo-elasticsearch.js",
+  "main": "dist/kendo-elasticsearch.js",
   "version": "1.10.3",
   "homepage": "https://github.com/mgdis/kendo-elasticsearch",
   "authors": [

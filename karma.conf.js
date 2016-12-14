@@ -4,7 +4,7 @@
 // jscs:disable
 // jshint ignore: start
 
-module.exports = function(config) {
+module.exports = function (config) {
   config.set({
 
     // base path that will be used to resolve all patterns (eg. files, exclude)
@@ -23,7 +23,7 @@ module.exports = function(config) {
       'bower_components/jquery-mockjax/dist/jquery.mockjax.js',
       'bower_components/kendo-ui/src/js/kendo.core.js',
       'bower_components/kendo-ui/src/js/kendo.data.js',
-      'kendo-elasticsearch.js',
+      'dist/kendo-elasticsearch.js',
       'tests/**/*.js'
     ],
 
@@ -46,7 +46,7 @@ module.exports = function(config) {
       // source files, that you wanna generate coverage for
       // do not include tests or libraries
       // (these files will be instrumented by Istanbul)
-      'kendo-elasticsearch.js': ['coverage']
+      'dist/kendo-elasticsearch.js': ['coverage']
     },
 
     coverageReporter: {
@@ -80,5 +80,5 @@ module.exports = function(config) {
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits
     singleRun: true
-  })
-}
+  });
+};

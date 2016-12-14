@@ -15,6 +15,10 @@ It supports filtering, searching, sorting, grouping and aggregating in ElasticSe
 
 To run the demos on your computer you will need a local instance of ElasticSearch with CORS enabled, a clone of this repository and [nodejs](https://nodejs.org) and [bower](http://bower.io/).
 
+If you use docker-compose this command will create an Elasticsearch instance:
+
+    docker-compose up -d
+
 If you use docker this command will create an ElasticSearch instance :
 
     docker run -d --name elasticsearch1.7 -p 9200:9200 elasticsearch:1.7 -Des.http.cors.enabled=true -Des.http.cors.allow-origin=*
