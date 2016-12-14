@@ -1,3 +1,12 @@
+language: node_js
+sudo: false
+node_js:
+  - '7'
+
+cache:
+  directories:
+    - ~/.npm
+    - ~/.yarn-cache
 env:
   global:
     # Repo token to send coverage report to coveralls
@@ -7,10 +16,15 @@ branches:
   only:
     - master
 
-language: node_js
+before_install:
+  # Use exact Node version.
+  - nvm use $TRAVIS_NODE_VERSION
 
-node_js:
-  - '7'
+  # Setup package managers.
+  - npm set loglevel error
+  - npm set progress false
+  - npm i -g yarn@0.17.10
+  - yarn -V
 
 install:
   - yarn
