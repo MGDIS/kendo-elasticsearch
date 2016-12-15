@@ -1,12 +1,13 @@
 {
   "name": "kendo-elasticsearch",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "A Kendo DataSource extension so you can load data into your [Kendo UI Grid](http://docs.telerik.com/kendo-ui/api/javascript/ui/grid) from an [ElasticSearch](https://www.elasticsearch.org/) index.",
   "main": "kendo-elasticsearch.js",
   "directories": {
     "test": "tests"
   },
   "scripts": {
+    "prepublish": "npm run build",
     "build": "NODE_ENV=build webpack",
     "dev": "webpack --progress --colors --watch --mode=dev",
     "test": "npm run build && karma start && npm run mocha",
