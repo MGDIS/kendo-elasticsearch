@@ -1,0 +1,136 @@
+{
+  "accounts_amount": {
+    "type": "number",
+    "esMultiSplit": true,
+    "esNestedPath": "accounts",
+    "esName": "amount",
+    "key": "accounts_amount",
+    "esNameSplit": ["amount"],
+    "esFullNestedPath": "organization.accounts",
+    "esSearchName": "accounts.amount",
+    "esFilterName": "accounts.amount",
+    "esAggName": "organization.accounts.amount"
+  },
+  "accounts_name": {
+    "type": "string",
+    "esNestedPath": "accounts",
+    "esName": "name",
+    "key": "accounts_name",
+    "esNameSplit": ["name"],
+    "esFullNestedPath": "organization.accounts",
+    "esSearchName": "accounts.name",
+    "esFilterName": "accounts.name.lowercase",
+    "esAggName": "organization.accounts.name.raw"
+  },
+  "addresses_city": {
+    "type": "string",
+    "esNestedPath": "addresses",
+    "esName": "city",
+    "key": "addresses_city",
+    "esNameSplit": ["city"],
+    "esFullNestedPath": "organization.addresses",
+    "esSearchName": "addresses.city",
+    "esFilterName": "addresses.city.lowercase",
+    "esAggName": "organization.addresses.city.raw"
+  },
+  "addresses_comment_content": {
+    "type": "string",
+    "esNestedPath": "addresses",
+    "esName": "comment.content",
+    "key": "addresses_comment_content",
+    "esNameSplit": ["comment", "content"],
+    "esFullNestedPath": "organization.addresses",
+    "esSearchName": "addresses.comment.content",
+    "esFilterName": "addresses.comment.content.lowercase",
+    "esAggName": "organization.addresses.comment.content.raw"
+  },
+  "addresses_comment_date": {
+    "type": "date",
+    "esMultiSplit": true,
+    "esNestedPath": "addresses",
+    "esName": "comment.date",
+    "key": "addresses_comment_date",
+    "esNameSplit": ["comment", "date"],
+    "esFullNestedPath": "organization.addresses",
+    "esSearchName": "addresses.comment.date",
+    "esFilterName": "addresses.comment.date",
+    "esAggName": "organization.addresses.comment.date"
+  },
+  "addresses_country": {
+    "type": "string",
+    "esNestedPath": "addresses",
+    "esName": "country",
+    "key": "addresses_country",
+    "esNameSplit": ["country"],
+    "esFullNestedPath": "organization.addresses",
+    "esSearchName": "addresses.country",
+    "esFilterName": "addresses.country.lowercase",
+    "esAggName": "organization.addresses.country.raw"
+  },
+  "addresses_streetName": {
+    "type": "string",
+    "esNestedPath": "addresses",
+    "esName": "streetName",
+    "key": "addresses_streetName",
+    "esNameSplit": ["streetName"],
+    "esFullNestedPath": "organization.addresses",
+    "esSearchName": "addresses.streetName",
+    "esFilterName": "addresses.streetName.lowercase",
+    "esAggName": "organization.addresses.streetName.raw"
+  },
+  "addresses_telephones_type": {
+    "type": "string",
+    "esNestedPath": "addresses.telephones",
+    "esName": "type",
+    "key": "addresses_telephones_type",
+    "esNameSplit": ["type"],
+    "esFullNestedPath": "organization.addresses.telephones",
+    "esSearchName": "addresses.telephones.type",
+    "esFilterName": "addresses.telephones.type.lowercase",
+    "esAggName": "organization.addresses.telephones.type.raw"
+  },
+  "addresses_telephones_used": {
+    "type": "number",
+    "esMultiSplit": true,
+    "esNestedPath": "addresses.telephones",
+    "esName": "used",
+    "key": "addresses_telephones_used",
+    "esNameSplit": ["used"],
+    "esFullNestedPath": "organization.addresses.telephones",
+    "esSearchName": "addresses.telephones.used",
+    "esFilterName": "addresses.telephones.used",
+    "esAggName": "organization.addresses.telephones.used"
+  },
+  "addresses_telephones_value": {
+    "type": "string",
+    "esNestedPath": "addresses.telephones",
+    "esName": "value",
+    "key": "addresses_telephones_value",
+    "esNameSplit": ["value"],
+    "esFullNestedPath": "organization.addresses.telephones",
+    "esSearchName": "addresses.telephones.value",
+    "esFilterName": "addresses.telephones.value.lowercase",
+    "esAggName": "organization.addresses.telephones.value.raw"
+  },
+  "addresses_zipCode": {
+    "type": "string",
+    "esNestedPath": "addresses",
+    "esName": "zipCode",
+    "key": "addresses_zipCode",
+    "esNameSplit": ["zipCode"],
+    "esFullNestedPath": "organization.addresses",
+    "esSearchName": "addresses.zipCode",
+    "esFilterName": "addresses.zipCode.lowercase",
+    "esAggName": "organization.addresses.zipCode.raw"
+  },
+  "companyName": {
+    "type": "string",
+    "esName": "companyName",
+    "key": "companyName",
+    "esNameSplit": ["companyName"],
+    "esFullNestedPath": "organization.undefined",
+    "esSearchName": "companyName",
+    "esFilterName": "companyName.lowercase",
+    "esAggName": "companyName.raw"
+  }
+}

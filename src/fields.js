@@ -1,14 +1,13 @@
 export const fromMapping = _fromMapping;
 export const fill = _fill;
+export const nestedFields = _nestedFields;
 
 // Transform a mapping definition from ElasticSearch into a kendo fields map
 // This utility function is exposed as it can be interesting to use it before instantiating
 // the actual datasource
 // @param mapping - An elasticsearch mapping
 function _fromMapping(
-  mapping, model, fields, prefix, esPrefix, nestedPath) {
-  fields = fields || {};
-  prefix = prefix || '';
+  mapping, model, fields = {}, prefix = '', esPrefix, nestedPath) {
   Object.keys(mapping.properties || {}).forEach(propertyKey => {
     const property = mapping.properties[propertyKey];
     const curedPropertyKey = asKendoPropertyKey(propertyKey);
@@ -71,16 +70,18 @@ function _fromMapping(
 // or esAggName are defined or on a subfield if esFilterSubField or esAggSubField are defined.
 // Typical use case is the main field is analyzed, but it has a subfield that is not
 // (or only with a minimal analyzer)
-function _fill(fields, model) {
+function _fill(fields, model = {}) {
   for (const k in fields) {
     if (fields.hasOwnProperty(k)) {
       const field = fields[k];
       field.key = k;
       field.esName = field.esName || k;
       field.esNameSplit = field.esName.split('.');
-      field.esFullNestedPath = field.esNestedPath;
-      if (model.esMappingKey) {
-        field.esFullNestedPath = model.esMappingKey + '.' + field.esFullNestedPath;
+      if (field.esNestedPath) {
+        field.esFullNestedPath = field.esNestedPath;
+        if (model.esMappingKey) {
+          field.esFullNestedPath = model.esMappingKey + '.' + field.esFullNestedPath;
+        }
       }
       if (!field.esSearchName) {
         field.esSearchName = field.esName;
@@ -136,4 +137,27 @@ function _fill(fields, model) {
 // i.e a valid js identifier with alphanumeric chars + '_' and '$'
 function asKendoPropertyKey(value) {
   return value.replace(/[^a-zA-z0-9_$]/g, '_');
+}
+
+// Get sets of nesting levels and matching groups of fields
+function _nestedFields(fields) {
+  const _result = {};
+  const _subTypes = {};
+  Object.keys(fields).forEach(fieldKey => {
+    const field = fields[fieldKey];
+    if (field.esNestedPath) {
+      _result[field.esNestedPath] = _result[field.esNestedPath] || [];
+      _result[field.esNestedPath].push(field.esName);
+    }
+    if (field.esParentType) {
+      _subTypes[field.esParentType] = _subTypes[field.esParentType] || [];
+      _subTypes[field.esParentType].push(field.esName);
+    }
+    if (field.esChildType) {
+      _subTypes[field.esChildType] = _subTypes[field.esChildType] || [];
+      _subTypes[field.esChildType].push(field.esName);
+    }
+  });
+
+  return [_result, _subTypes];
 }

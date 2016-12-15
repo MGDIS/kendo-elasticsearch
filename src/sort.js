@@ -14,7 +14,9 @@ function _kendo2es(sort, fields, nestedPath) {
     return {
       [fields[sortItem.field].esFilterName]: {
         order: sortItem.dir,
+        // Always put items without the sorted key at the end
         missing: '_last',
+        // Deal with sorting items by a property in nested documents
         mode: sortItem.dir === 'asc' ? 'min' : 'max'
       }
     };
@@ -22,8 +24,10 @@ function _kendo2es(sort, fields, nestedPath) {
 };
 
 // Prepare sort parameters for easier transformation to ES later on
-function _prepareParams(sort, groups) {
+function _prepareParams(sort, groups = []) {
   // first fix the type of the param that can be object of group
+  // we always parse as an array
+  // http://docs.telerik.com/kendo-ui/api/javascript/data/datasource#configuration-sort
   let sortArray = [];
   if (sort && sort.constructor === Array) {
     sortArray = sort;
@@ -35,7 +39,7 @@ function _prepareParams(sort, groups) {
 
   // Sort instructions for the groups are first
   let fullSort = [];
-  (groups || []).forEach(function (group) {
+  groups.forEach(group => {
     const matchingSort = sortArray.filter(function (sortItem) {
       return sortItem.field === group.field;
     });
@@ -43,6 +47,7 @@ function _prepareParams(sort, groups) {
       fullSort.push(matchingSort[0]);
       sortArray.splice(sortArray.indexOf(matchingSort[0]), 1);
     } else {
+      // Sort by default
       fullSort.push({
         field: group.field,
         dir: group.dir || 'asc'

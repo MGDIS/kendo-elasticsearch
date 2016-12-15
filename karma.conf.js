@@ -24,7 +24,7 @@ module.exports = function (config) {
       'bower_components/kendo-ui/src/js/kendo.core.js',
       'bower_components/kendo-ui/src/js/kendo.data.js',
       'dist/kendo-elasticsearch.js',
-      'tests/**/*.js'
+      'tests/karma/kendo-elasticsearch.js'
     ],
 
 

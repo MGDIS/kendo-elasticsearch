@@ -199,10 +199,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	      // cheat. Root aggregations used as a pseudo buckets with doc_count = total number of results
 	      // used to process missing counts
 	      if (response.aggregations) {
-	        response.aggregations['doc_count'] = response.hits.total;
+	        response.aggregations.doc_count = response.hits.total;
 	      }
 	      var aggregates = aggregations.es2kendo(response.aggregations);
-	
 	      var grps = groups.es2kendo(items, response.aggregations, _model.fields, initOptions.aggregationsOnly);
 	
 	      return {
@@ -216,7 +215,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    schema.aggregates = function (response) {
 	      return response.aggregates;
 	    };
-	
 	    schema.groups = function (response) {
 	      return response.groups;
 	    };
@@ -262,15 +260,21 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }).map(function (sortItem) {
 	    return _defineProperty({}, fields[sortItem.field].esFilterName, {
 	      order: sortItem.dir,
+	      // Always put items without the sorted key at the end
 	      missing: '_last',
+	      // Deal with sorting items by a property in nested documents
 	      mode: sortItem.dir === 'asc' ? 'min' : 'max'
 	    });
 	  });
 	};
 	
 	// Prepare sort parameters for easier transformation to ES later on
-	function _prepareParams(sort, groups) {
+	function _prepareParams(sort) {
+	  var groups = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
+	
 	  // first fix the type of the param that can be object of group
+	  // we always parse as an array
+	  // http://docs.telerik.com/kendo-ui/api/javascript/data/datasource#configuration-sort
 	  var sortArray = [];
 	  if (sort && sort.constructor === Array) {
 	    sortArray = sort;
@@ -282,7 +286,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	  // Sort instructions for the groups are first
 	  var fullSort = [];
-	  (groups || []).forEach(function (group) {
+	  groups.forEach(function (group) {
 	    var matchingSort = sortArray.filter(function (sortItem) {
 	      return sortItem.field === group.field;
 	    });
@@ -290,6 +294,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      fullSort.push(matchingSort[0]);
 	      sortArray.splice(sortArray.indexOf(matchingSort[0]), 1);
 	    } else {
+	      // Sort by default
 	      fullSort.push({
 	        field: group.field,
 	        dir: group.dir || 'asc'
@@ -590,9 +595,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	          var currentPath = groupNestedPath ? groupNestedPath + '.' + previousPathParts.join('.') : previousPathParts.join('.');
 	          var fullCurrentPath = esMappingKey ? esMappingKey + '.' + currentPath : currentPath;
 	          var currentFields = nestedFields[currentPath];
-	          if (!currentFields) {
-	            return;
-	          }
+	          if (!currentFields) return;
 	          if (!aggsWrapper[currentPath]) {
 	            aggsWrapper[currentPath + '_filter_nested'] = aggsWrapper[currentPath + '_filter_nested'] || {
 	              nested: {
@@ -651,6 +654,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
+	
+	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+	
 	// Some function that work on ES queries to deal with nested levels and other
 	// difficulties
 	
@@ -673,17 +679,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	      }
 	      if (!previousLevelInnerHits[currentPath]) {
 	        previousLevelInnerHits[currentPath] = {
-	          path: {}
-	        };
-	        previousLevelInnerHits[currentPath].path[fullCurrentPath] = {
-	          _source: currentFields,
-	          size: 10000,
-	          sort: sort,
-	          query: {
-	            filtered: {
-	              filter: _innerHitsFilter(fullCurrentPath, null, filter)
+	          path: _defineProperty({}, fullCurrentPath, {
+	            _source: currentFields,
+	            size: 10000,
+	            sort: sort,
+	            query: {
+	              filtered: {
+	                filter: _innerHitsFilter(fullCurrentPath, null, filter)
+	              }
 	            }
-	          }
+	          })
 	        };
 	      }
 	      if (currentPath !== nestedPath) {
@@ -696,17 +701,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	  Object.keys(subTypes).forEach(function (subType) {
 	    var currentFields = subTypes[subType];
 	    innerHits[subType] = {
-	      type: {}
-	    };
-	    innerHits[subType].type[subType] = {
-	      _source: currentFields,
-	      size: 10000,
-	      sort: sort,
-	      query: {
-	        filtered: {
-	          filter: _innerHitsFilter(null, subType, filter)
+	      type: _defineProperty({}, subType, {
+	        _source: currentFields,
+	        size: 10000,
+	        sort: sort,
+	        query: {
+	          filtered: {
+	            filter: _innerHitsFilter(null, subType, filter)
+	          }
 	        }
-	      }
+	      })
 	    };
 	  });
 	  return innerHits;
@@ -920,7 +924,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	    // Iterate on properties of item
 	    Object.keys(item).forEach(function (k) {
-	
 	      var partialItemResults = [];
 	
 	      // Iterate on the multiple values of this property
@@ -931,7 +934,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            // Clone the result to create variants with the different values of current key
 	            var newResult = {};
 	            Object.keys(result).forEach(function (k2) {
-	              newResult[k2] = result[k2];
+	              return newResult[k2] = result[k2];
 	            });
 	            newResult[k] = val;
 	            partialItemResults.push(newResult);
@@ -1180,26 +1183,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var esName = esPrefix ? esPrefix + '.' + propertyKey : propertyKey;
 	
 	    if (property.type === 'nested') {
-	
 	      // Case where the property is a nested object
-	      var subNestedPath = void 0;
-	
-	      if (nestedPath) {
-	        subNestedPath = nestedPath + '.' + esName;
-	      } else {
-	        subNestedPath = esName;
-	      }
-	
+	      var subNestedPath = nestedPath ? nestedPath + '.' + esName : esName;
 	      _fromMapping(property, model, fields, prefixedName, '', subNestedPath);
 	    } else if (property.properties) {
-	
 	      // Case where the property is a non nested object with properties
 	      _fromMapping(property, model, fields, prefixedName, esName, nestedPath);
 	    } else if (property.type === 'object') {
-	
 	      // Case where the property is a non nested object with zero subproperties. do nothing.
 	    } else {
-	
 	      // Finally case of a leaf property
 	      var field = fields[prefixedName] = fields[prefixedName] || {};
 	

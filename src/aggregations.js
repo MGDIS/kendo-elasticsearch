@@ -11,10 +11,10 @@ const kendoToESAgg = {
 };
 
 // Transform kendo aggregates into ES metric aggregations
-function _kendo2es(aggregate, fields, nestedFields, esMappingKey, filter, groupNestedPath) {
+function _kendo2es(aggregate = [], fields, nestedFields, esMappingKey, filter, groupNestedPath) {
   const esAggs = {};
 
-  (aggregate || []).forEach(aggItem => {
+  aggregate.forEach(aggItem => {
     const field = fields[aggItem.field];
     let nestedPath = field.esNestedPath;
     let aggsWrapper = esAggs;
@@ -65,9 +65,7 @@ function _kendo2es(aggregate, fields, nestedFields, esMappingKey, filter, groupN
 }
 
 // Transform aggregation results from a ES query to kendo aggregates
-function _es2kendo(aggregations, previousAggregates) {
-  const aggregates = previousAggregates || {};
-  aggregations = aggregations || {};
+function _es2kendo(aggregations = {}, aggregates = {}) {
   Object.keys(aggregations).forEach(aggKey => {
     if (!aggregations[aggKey]) return;
     ['count', 'min', 'max', 'average', 'sum'].forEach(aggType => {

@@ -9,7 +9,8 @@ var indexDefinition = require('./index-definition');
 // These variables are parameters for the following
 
 var client = new elasticsearch.Client({
-  host: 'http://localhost:9200'
+  host: 'http://localhost:9200',
+  apiVersion: '1.7'
 });
 var index = 'kendo-elasticsearch-demo';
 var nbOrganizations = 1000;
@@ -53,31 +54,31 @@ console.log('Prepared bulk query with %s random persons', nbPersons);
 // Create index then use bulk to index a bunch of documents
 client.indices.exists({
   index: index
-}).then(function(exists) {
+}).then(function (exists) {
   if (exists) {
     client.indices.delete({
       index: index
     });
   }
-}).then(function() {
+}).then(function () {
   return client.indices.create({
     index: index,
     body: indexDefinition
   });
-}).then(function() {
+}).then(function () {
   return client.bulk({
     index: index,
     body: bulkOrganizations
   });
-}).then(function() {
+}).then(function () {
   return client.bulk({
     index: index,
     body: bulkPersons
   });
-}).then(function(response) {
+}).then(function (response) {
   console.log('Created %s organizations and %s persons.', nbOrganizations, nbPersons);
   process.exit();
-}, function(err) {
+}, function (err) {
   console.error('Failed to create datasets', err);
   process.exit(-1);
 });

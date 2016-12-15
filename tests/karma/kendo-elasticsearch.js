@@ -1,9 +1,13 @@
 /* global QUnit, kendo, $ */
-/* eslint no-new: 0 */
 
 // A karma/qunit test suite
 // Based on the test suites from kendo-ui
 // For example: https://github.com/telerik/kendo-ui-core/blob/master/tests/data/datasource/read.js
+
+// Quasi integration tests with ES requests mocks and full datasource usage.
+// See test files in tests/mocha for unit tests of utility functions.
+
+/* eslint-disable */
 
 (function () {
 
