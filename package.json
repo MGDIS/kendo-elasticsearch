@@ -1,6 +1,6 @@
 {
   "name": "kendo-elasticsearch",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "A Kendo DataSource extension so you can load data into your [Kendo UI Grid](http://docs.telerik.com/kendo-ui/api/javascript/ui/grid) from an [ElasticSearch](https://www.elasticsearch.org/) index.",
   "main": "dist/kendo-elasticsearch.js",
   "directories": {
