@@ -56,6 +56,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	'use strict';
 	
+	var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }(); /**
+	                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          * A Kendo DataSource that gets its data from ElasticSearch.
+	                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          *
+	                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          * Read-only, supports paging, filtering, sorting, grouping and aggregations.
+	                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          */
+	
 	var _sort = __webpack_require__(1);
 	
 	var sort = _interopRequireWildcard(_sort);
@@ -86,11 +92,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 	
-	var data = kendo.data; /**
-	                        * A Kendo DataSource that gets its data from ElasticSearch.
-	                        *
-	                        * Read-only, supports paging, filtering, sorting, grouping and aggregations.
-	                        */
+	var data = kendo.data;
 	
 	data.ElasticSearchDataSource = data.DataSource.extend({
 	  init: function init(initOptions) {
@@ -124,23 +126,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	
 	    // Get sets of nesting levels
-	    var _nestedFields = {};
-	    var _subTypes = {};
-	    Object.keys(_model.fields).forEach(function (fieldKey) {
-	      var field = _model.fields[fieldKey];
-	      if (field.esNestedPath) {
-	        _nestedFields[field.esNestedPath] = _nestedFields[field.esNestedPath] || [];
-	        _nestedFields[field.esNestedPath].push(field.esName);
-	      }
-	      if (field.esParentType) {
-	        _subTypes[field.esParentType] = _subTypes[field.esParentType] || [];
-	        _subTypes[field.esParentType].push(field.esName);
-	      }
-	      if (field.esChildType) {
-	        _subTypes[field.esChildType] = _subTypes[field.esChildType] || [];
-	        _subTypes[field.esChildType].push(field.esName);
-	      }
-	    });
+	
+	    var _fields$nestedFields = fields.nestedFields(_model.fields),
+	        _fields$nestedFields2 = _slicedToArray(_fields$nestedFields, 2),
+	        _nestedFields = _fields$nestedFields2[0],
+	        _subTypes = _fields$nestedFields2[1];
+	
+	    console.log(fields);
 	
 	    // Prepare the content of the query that will be sent to ES
 	    // based on the kendo data structure
@@ -570,10 +562,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	};
 	
 	// Transform kendo aggregates into ES metric aggregations
-	function _kendo2es(aggregate, fields, nestedFields, esMappingKey, filter, groupNestedPath) {
+	function _kendo2es() {
+	  var aggregate = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+	  var fields = arguments[1];
+	  var nestedFields = arguments[2];
+	  var esMappingKey = arguments[3];
+	  var filter = arguments[4];
+	  var groupNestedPath = arguments[5];
+	
 	  var esAggs = {};
 	
-	  (aggregate || []).forEach(function (aggItem) {
+	  aggregate.forEach(function (aggItem) {
 	    var field = fields[aggItem.field];
 	    var nestedPath = field.esNestedPath;
 	    var aggsWrapper = esAggs;
@@ -623,9 +622,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	// Transform aggregation results from a ES query to kendo aggregates
-	function _es2kendo(aggregations, previousAggregates) {
-	  var aggregates = previousAggregates || {};
-	  aggregations = aggregations || {};
+	function _es2kendo() {
+	  var aggregations = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+	  var aggregates = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+	
 	  Object.keys(aggregations).forEach(function (aggKey) {
 	    if (!aggregations[aggKey]) return;
 	    ['count', 'min', 'max', 'average', 'sum'].forEach(function (aggType) {
@@ -1168,14 +1168,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 	var fromMapping = exports.fromMapping = _fromMapping;
 	var fill = exports.fill = _fill;
+	var nestedFields = exports.nestedFields = _nestedFields;
 	
 	// Transform a mapping definition from ElasticSearch into a kendo fields map
 	// This utility function is exposed as it can be interesting to use it before instantiating
 	// the actual datasource
 	// @param mapping - An elasticsearch mapping
-	function _fromMapping(mapping, model, fields, prefix, esPrefix, nestedPath) {
-	  fields = fields || {};
-	  prefix = prefix || '';
+	function _fromMapping(mapping, model) {
+	  var fields = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+	  var prefix = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : '';
+	  var esPrefix = arguments[4];
+	  var nestedPath = arguments[5];
+	
 	  Object.keys(mapping.properties || {}).forEach(function (propertyKey) {
 	    var property = mapping.properties[propertyKey];
 	    var curedPropertyKey = asKendoPropertyKey(propertyKey);
@@ -1238,16 +1242,20 @@ return /******/ (function(modules) { // webpackBootstrap
 	// or esAggName are defined or on a subfield if esFilterSubField or esAggSubField are defined.
 	// Typical use case is the main field is analyzed, but it has a subfield that is not
 	// (or only with a minimal analyzer)
-	function _fill(fields, model) {
+	function _fill(fields) {
+	  var model = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+	
 	  for (var k in fields) {
 	    if (fields.hasOwnProperty(k)) {
 	      var field = fields[k];
 	      field.key = k;
 	      field.esName = field.esName || k;
 	      field.esNameSplit = field.esName.split('.');
-	      field.esFullNestedPath = field.esNestedPath;
-	      if (model.esMappingKey) {
-	        field.esFullNestedPath = model.esMappingKey + '.' + field.esFullNestedPath;
+	      if (field.esNestedPath) {
+	        field.esFullNestedPath = field.esNestedPath;
+	        if (model.esMappingKey) {
+	          field.esFullNestedPath = model.esMappingKey + '.' + field.esFullNestedPath;
+	        }
 	      }
 	      if (!field.esSearchName) {
 	        field.esSearchName = field.esName;
@@ -1297,6 +1305,29 @@ return /******/ (function(modules) { // webpackBootstrap
 	// i.e a valid js identifier with alphanumeric chars + '_' and '$'
 	function asKendoPropertyKey(value) {
 	  return value.replace(/[^a-zA-z0-9_$]/g, '_');
+	}
+	
+	// Get sets of nesting levels and matching groups of fields
+	function _nestedFields(fields) {
+	  var _result = {};
+	  var _subTypes = {};
+	  Object.keys(fields).forEach(function (fieldKey) {
+	    var field = fields[fieldKey];
+	    if (field.esNestedPath) {
+	      _result[field.esNestedPath] = _result[field.esNestedPath] || [];
+	      _result[field.esNestedPath].push(field.esName);
+	    }
+	    if (field.esParentType) {
+	      _subTypes[field.esParentType] = _subTypes[field.esParentType] || [];
+	      _subTypes[field.esParentType].push(field.esName);
+	    }
+	    if (field.esChildType) {
+	      _subTypes[field.esChildType] = _subTypes[field.esChildType] || [];
+	      _subTypes[field.esChildType].push(field.esName);
+	    }
+	  });
+	
+	  return [_result, _subTypes];
 	}
 
 /***/ }

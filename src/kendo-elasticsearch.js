@@ -47,7 +47,8 @@ data.ElasticSearchDataSource = data.DataSource.extend({
     }
 
     // Get sets of nesting levels
-    const [_nestedFields, _subTypes] = fields.nestedFields(fields);
+    const [_nestedFields, _subTypes] = fields.nestedFields(_model.fields);
+    console.log(fields);
 
     // Prepare the content of the query that will be sent to ES
     // based on the kendo data structure

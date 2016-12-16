@@ -810,6 +810,7 @@
 
         assert.equal(data.query.filtered.filter.and.filters[0].nested.path, 'addresses');
         assert.ok(data.inner_hits.hasOwnProperty('addresses'));
+        console.log(data.inner_hits);
         assert.ok(data.inner_hits.addresses.path.addresses.inner_hits
           .hasOwnProperty('addresses.telephones'));
         assert.equal(data.inner_hits.addresses.path.addresses.inner_hits['addresses.telephones']
