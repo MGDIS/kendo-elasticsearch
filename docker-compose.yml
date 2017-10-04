@@ -1,5 +1,5 @@
 elasticsearch1.7:
-  image: elasticsearch:1.7
+  image: elasticsearch:1.7-alpine
   ports:
     - 9200:9200
   command: elasticsearch -Des.http.cors.enabled=true -Des.http.cors.allow-origin=*
