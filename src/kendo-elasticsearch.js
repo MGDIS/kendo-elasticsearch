@@ -74,7 +74,7 @@ data.ElasticSearchDataSource = data.DataSource.extend({
       // Transform kendo filters into a ES query using a query_string request
       esParams.query = {
         filtered: {
-          filter: filters.kendo2es(data.filter || [], _model.fields)
+          filter: filters.kendo2es(data.filter || [], _model.fields, initOptions)
         }
       };
 

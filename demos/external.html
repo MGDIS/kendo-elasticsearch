@@ -106,12 +106,15 @@
           }
         }
       },
+    // This option can be used to treat boolean missing values as false
+    missingBooleanAsFalse : true,
 
       filter: {
         field: 'active',
         operator: 'eq',
         value: false
       },
+
 
       sort: {
         field: 'birthDate',

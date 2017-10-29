@@ -158,7 +158,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      // Transform kendo filters into a ES query using a query_string request
 	      esParams.query = {
 	        filtered: {
-	          filter: filters.kendo2es(data.filter || [], _model.fields)
+	          filter: filters.kendo2es(data.filter || [], _model.fields, initOptions)
 	        }
 	      };
 	
@@ -966,7 +966,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var kendo2es = exports.kendo2es = _kendo2es;
 	
 	// Transform a tree of kendo filters into a tree of ElasticSearch filters
-	function _kendo2es(kendoFilters, fields) {
+	function _kendo2es(kendoFilters, fields, initOptions) {
 	  var filters = void 0;
 	
 	  // logicalConnective can be "and" or "or"
@@ -997,7 +997,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      var esFilter = {
 	        query: {
 	          query_string: {
-	            query: _filterParam(filter, fields),
+	            query: _filterParam(filter, fields, initOptions),
 	            // support uppercase/lowercase and accents
 	            analyze_wildcard: true
 	          }
@@ -1050,7 +1050,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	// Transform a single kendo filter in a string
 	// that can be used to compose a ES query_string query
-	function _filterParam(kendoFilter, fields) {
+	function _filterParam(kendoFilter, fields, initOptions) {
 	
 	  // Boolean filter seems to forget the operator sometimes
 	  kendoFilter.operator = kendoFilter.operator || 'eq';
@@ -1096,7 +1096,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	  if (simpleBinaryOperators[kendoFilter.operator] !== void 0) {
 	    var esOperator = simpleBinaryOperators[kendoFilter.operator];
-	    return fieldEscaped + ':' + esOperator + valueEscaped;
+	    // Optional special condition, when comparing against bool false values
+	    // we treat also the missing property condition, like this, false === missing too
+	    // Event if this is not true, normally is the desired effect
+	    if (initOptions && initOptions.missingBooleanAsFalse === true && kendoFilter.value === false) {
+	      return fieldEscaped + ':' + esOperator + valueEscaped + ' OR _missing_:' + fieldEscaped;
+	    } else {
+	      return fieldEscaped + ':' + esOperator + valueEscaped;
+	    }
 	  } else {
 	    var expression = void 0;
 	    switch (kendoFilter.operator) {

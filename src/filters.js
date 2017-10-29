@@ -1,7 +1,7 @@
 export const kendo2es = _kendo2es;
 
 // Transform a tree of kendo filters into a tree of ElasticSearch filters
-function _kendo2es(kendoFilters, fields) {
+function _kendo2es(kendoFilters, fields, initOptions) {
   let filters;
 
   // logicalConnective can be "and" or "or"
@@ -32,7 +32,7 @@ function _kendo2es(kendoFilters, fields) {
       let esFilter = {
         query: {
           query_string: {
-            query: _filterParam(filter, fields),
+            query: _filterParam(filter, fields, initOptions),
             // support uppercase/lowercase and accents
             analyze_wildcard: true
           }
@@ -86,7 +86,7 @@ function _kendo2es(kendoFilters, fields) {
 
 // Transform a single kendo filter in a string
 // that can be used to compose a ES query_string query
-function _filterParam(kendoFilter, fields) {
+function _filterParam(kendoFilter, fields, initOptions) {
 
   // Boolean filter seems to forget the operator sometimes
   kendoFilter.operator = kendoFilter.operator || 'eq';
@@ -135,7 +135,14 @@ function _filterParam(kendoFilter, fields) {
 
   if (simpleBinaryOperators[kendoFilter.operator] !== void 0) {
     const esOperator = simpleBinaryOperators[kendoFilter.operator];
-    return fieldEscaped + ':' + esOperator + valueEscaped;
+    // Optional special condition, when comparing against bool false values
+    // we treat also the missing property condition, like this, false === missing too
+    // Event if this is not true, normally is the desired effect
+    if (initOptions && initOptions.missingBooleanAsFalse === true && kendoFilter.value === false) {
+      return (fieldEscaped + ':' + esOperator + valueEscaped) + ' OR _missing_:' + fieldEscaped;
+    } else {
+      return fieldEscaped + ':' + esOperator + valueEscaped;
+    }
   } else {
     let expression;
     switch (kendoFilter.operator) {
