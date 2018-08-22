@@ -577,39 +577,37 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var nestedPath = field.esNestedPath;
 	    var aggsWrapper = esAggs;
 	    if (groupNestedPath !== nestedPath) {
-	      (function () {
-	        var previousPathParts = [];
-	        if (groupNestedPath && nestedPath.indexOf(groupNestedPath) !== 0) {
-	          esAggs.group_reverse_nested = esAggs.group_reverse_nested || {
-	            reverse_nested: {},
+	      var previousPathParts = [];
+	      if (groupNestedPath && nestedPath.indexOf(groupNestedPath) !== 0) {
+	        esAggs.group_reverse_nested = esAggs.group_reverse_nested || {
+	          reverse_nested: {},
+	          aggregations: {}
+	        };
+	        aggsWrapper = esAggs.group_reverse_nested.aggregations;
+	      } else if (groupNestedPath) {
+	        nestedPath = nestedPath.substr(groupNestedPath.length + 1, nestedPath.length);
+	      }
+	
+	      nestedPath.split('.').forEach(function (nestedPathPart) {
+	        previousPathParts.push(nestedPathPart);
+	        var currentPath = groupNestedPath ? groupNestedPath + '.' + previousPathParts.join('.') : previousPathParts.join('.');
+	        var fullCurrentPath = esMappingKey ? esMappingKey + '.' + currentPath : currentPath;
+	        var currentFields = nestedFields[currentPath];
+	        if (!currentFields) return;
+	        if (!aggsWrapper[currentPath]) {
+	          aggsWrapper[currentPath + '_filter_nested'] = aggsWrapper[currentPath + '_filter_nested'] || {
+	            nested: {
+	              path: fullCurrentPath
+	            },
 	            aggregations: {}
 	          };
-	          aggsWrapper = esAggs.group_reverse_nested.aggregations;
-	        } else if (groupNestedPath) {
-	          nestedPath = nestedPath.substr(groupNestedPath.length + 1, nestedPath.length);
+	          aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'] = aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'] || {
+	            filter: esUtils.innerHitsFilter(fullCurrentPath, null, filter),
+	            aggregations: {}
+	          };
 	        }
-	
-	        nestedPath.split('.').forEach(function (nestedPathPart) {
-	          previousPathParts.push(nestedPathPart);
-	          var currentPath = groupNestedPath ? groupNestedPath + '.' + previousPathParts.join('.') : previousPathParts.join('.');
-	          var fullCurrentPath = esMappingKey ? esMappingKey + '.' + currentPath : currentPath;
-	          var currentFields = nestedFields[currentPath];
-	          if (!currentFields) return;
-	          if (!aggsWrapper[currentPath]) {
-	            aggsWrapper[currentPath + '_filter_nested'] = aggsWrapper[currentPath + '_filter_nested'] || {
-	              nested: {
-	                path: fullCurrentPath
-	              },
-	              aggregations: {}
-	            };
-	            aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'] = aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'] || {
-	              filter: esUtils.innerHitsFilter(fullCurrentPath, null, filter),
-	              aggregations: {}
-	            };
-	          }
-	          aggsWrapper = aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'].aggregations;
-	        });
-	      })();
+	        aggsWrapper = aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'].aggregations;
+	      });
 	    }
 	
 	    aggsWrapper[aggItem.field + '_' + aggItem.aggregate] = {};
@@ -716,38 +714,46 @@ return /******/ (function(modules) { // webpackBootstrap
 	  return innerHits;
 	}
 	
+	function _manageBooleanFilter(nestedPath, subType, booleanFilter) {
+	  return booleanFilter.filter(function (childFilter) {
+	    return childFilter.bool && childFilter.bool.must || childFilter.bool && childFilter.bool.should || childFilter.nested && childFilter.nested.path === nestedPath || childFilter.not && childFilter.not.nested && childFilter.not.nested.path === nestedPath || childFilter.has_child && childFilter.has_child.type === subType || childFilter.not && childFilter.not.has_child && childFilter.not.has_child.type === subType || childFilter.has_parent && childFilter.has_parent.type === subType || childFilter.not && childFilter.not.has_parent && childFilter.not.has_parent.type === subType;
+	  }).map(function (childFilter) {
+	    if (childFilter.nested) {
+	      return childFilter.nested.filter;
+	    } else if (childFilter.not && childFilter.not.nested) {
+	      return {
+	        not: childFilter.not.nested.filter
+	      };
+	    } else if (childFilter.has_child) {
+	      return childFilter.has_child.filter;
+	    } else if (childFilter.not && childFilter.not.has_child) {
+	      return {
+	        not: childFilter.not.has_child.filter
+	      };
+	    } else if (childFilter.has_parent) {
+	      return childFilter.has_parent.filter;
+	    } else if (childFilter.not && childFilter.not.has_parent) {
+	      return {
+	        not: childFilter.not.has_parent.filter
+	      };
+	    } else {
+	      return _innerHitsFilter(nestedPath, childFilter);
+	    }
+	  });
+	}
+	
 	// Traverse the filter to keep only the parts that concern
 	// a nesting path
 	function _innerHitsFilter(nestedPath, subType, filter) {
 	  filter = $.extend(true, {}, filter);
-	  var logicFilter = filter.or || filter.and;
-	  if (logicFilter) {
-	    logicFilter.filters = logicFilter.filters.filter(function (childFilter) {
-	      return childFilter.and || childFilter.or || childFilter.nested && childFilter.nested.path === nestedPath || childFilter.not && childFilter.not.nested && childFilter.not.nested.path === nestedPath || childFilter.has_child && childFilter.has_child.type === subType || childFilter.not && childFilter.not.has_child && childFilter.not.has_child.type === subType || childFilter.has_parent && childFilter.has_parent.type === subType || childFilter.not && childFilter.not.has_parent && childFilter.not.has_parent.type === subType;
-	    }).map(function (childFilter) {
-	      if (childFilter.nested) {
-	        return childFilter.nested.filter;
-	      } else if (childFilter.not && childFilter.not.nested) {
-	        return {
-	          not: childFilter.not.nested.filter
-	        };
-	      } else if (childFilter.has_child) {
-	        return childFilter.has_child.filter;
-	      } else if (childFilter.not && childFilter.not.has_child) {
-	        return {
-	          not: childFilter.not.has_child.filter
-	        };
-	      } else if (childFilter.has_parent) {
-	        return childFilter.has_parent.filter;
-	      } else if (childFilter.not && childFilter.not.has_parent) {
-	        return {
-	          not: childFilter.not.has_parent.filter
-	        };
-	      } else {
-	        return _innerHitsFilter(nestedPath, childFilter);
-	      }
-	    });
+	  if (filter.bool && filter.bool.must) {
+	    filter.bool.must = _manageBooleanFilter(nestedPath, subType, filter.bool.must);
 	  }
+	
+	  if (filter.bool && filter.bool.should) {
+	    filter.bool.should = _manageBooleanFilter(nestedPath, subType, filter.bool.should);
+	  }
+	
 	  return filter;
 	}
 
@@ -1007,13 +1013,28 @@ return /******/ (function(modules) { // webpackBootstrap
 	        var esNestedFilter = esNestedFilters[field.esNestedPath] || {
 	          nested: {
 	            path: field.esFullNestedPath,
-	            filter: {}
+	            filter: {
+	              bool: {}
+	            }
 	          }
 	        };
-	        esNestedFilter.nested.filter[logicalConnective] = esNestedFilter.nested.filter[logicalConnective] || {
-	          filters: []
-	        };
-	        esNestedFilter.nested.filter[logicalConnective].filters.push(esFilter);
+	
+	        switch (logicalConnective) {
+	          case 'and':
+	            {
+	              esNestedFilter.nested.filter.bool.must = esNestedFilter.nested.filter.bool.must || [];
+	              esNestedFilter.nested.filter.bool.must.push(esFilter);
+	              break;
+	            }
+	
+	          case 'or':
+	            {
+	              esNestedFilter.nested.filter.bool.should = esNestedFilter.nested.filter.bool.should || [];
+	              esNestedFilter.nested.filter.bool.should.push(esFilter);
+	              break;
+	            }
+	        }
+	
 	        if (!esNestedFilters[field.esNestedPath]) {
 	          esFilter = esNestedFilters[field.esNestedPath] = esNestedFilter;
 	        } else {
@@ -1041,10 +1062,23 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	  });
 	
-	  var result = {};
-	  result[logicalConnective] = {
-	    filters: esFilters
+	  var result = {
+	    bool: {}
 	  };
+	  switch (logicalConnective) {
+	    case 'and':
+	      {
+	        result.bool.must = esFilters;
+	        break;
+	      }
+	
+	    case 'or':
+	      {
+	        result.bool.should = esFilters;
+	        break;
+	      }
+	  }
+	
 	  return result;
 	}
 	

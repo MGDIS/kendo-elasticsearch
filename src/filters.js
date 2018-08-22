@@ -42,13 +42,26 @@ function _kendo2es(kendoFilters, fields, initOptions) {
         const esNestedFilter = esNestedFilters[field.esNestedPath] || {
           nested: {
             path: field.esFullNestedPath,
-            filter: {}
+            filter: {
+              bool: {}
+            }
           }
         };
-        esNestedFilter.nested.filter[logicalConnective] = esNestedFilter.nested.filter[logicalConnective] || {
-          filters: []
-        };
-        esNestedFilter.nested.filter[logicalConnective].filters.push(esFilter);
+
+        switch (logicalConnective) {
+          case 'and': {
+            esNestedFilter.nested.filter.bool.must = esNestedFilter.nested.filter.bool.must || [];
+            esNestedFilter.nested.filter.bool.must.push(esFilter);
+            break;
+          }
+
+          case 'or': {
+            esNestedFilter.nested.filter.bool.should = esNestedFilter.nested.filter.bool.should || [];
+            esNestedFilter.nested.filter.bool.should.push(esFilter);
+            break;
+          }
+        }
+
         if (!esNestedFilters[field.esNestedPath]) {
           esFilter = esNestedFilters[field.esNestedPath] = esNestedFilter;
         } else {
@@ -77,10 +90,21 @@ function _kendo2es(kendoFilters, fields, initOptions) {
     }
   });
 
-  const result = {};
-  result[logicalConnective] = {
-    filters: esFilters
+  const result = {
+    bool: {}
   };
+  switch (logicalConnective) {
+    case 'and': {
+      result.bool.must = esFilters;
+      break;
+    }
+
+    case 'or': {
+      result.bool.should = esFilters;
+      break;
+    }
+  }
+
   return result;
 }
 
