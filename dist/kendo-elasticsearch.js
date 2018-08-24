@@ -577,37 +577,39 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var nestedPath = field.esNestedPath;
 	    var aggsWrapper = esAggs;
 	    if (groupNestedPath !== nestedPath) {
-	      var previousPathParts = [];
-	      if (groupNestedPath && nestedPath.indexOf(groupNestedPath) !== 0) {
-	        esAggs.group_reverse_nested = esAggs.group_reverse_nested || {
-	          reverse_nested: {},
-	          aggregations: {}
-	        };
-	        aggsWrapper = esAggs.group_reverse_nested.aggregations;
-	      } else if (groupNestedPath) {
-	        nestedPath = nestedPath.substr(groupNestedPath.length + 1, nestedPath.length);
-	      }
-	
-	      nestedPath.split('.').forEach(function (nestedPathPart) {
-	        previousPathParts.push(nestedPathPart);
-	        var currentPath = groupNestedPath ? groupNestedPath + '.' + previousPathParts.join('.') : previousPathParts.join('.');
-	        var fullCurrentPath = esMappingKey ? esMappingKey + '.' + currentPath : currentPath;
-	        var currentFields = nestedFields[currentPath];
-	        if (!currentFields) return;
-	        if (!aggsWrapper[currentPath]) {
-	          aggsWrapper[currentPath + '_filter_nested'] = aggsWrapper[currentPath + '_filter_nested'] || {
-	            nested: {
-	              path: fullCurrentPath
-	            },
+	      (function () {
+	        var previousPathParts = [];
+	        if (groupNestedPath && nestedPath.indexOf(groupNestedPath) !== 0) {
+	          esAggs.group_reverse_nested = esAggs.group_reverse_nested || {
+	            reverse_nested: {},
 	            aggregations: {}
 	          };
-	          aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'] = aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'] || {
-	            filter: esUtils.innerHitsFilter(fullCurrentPath, null, filter),
-	            aggregations: {}
-	          };
+	          aggsWrapper = esAggs.group_reverse_nested.aggregations;
+	        } else if (groupNestedPath) {
+	          nestedPath = nestedPath.substr(groupNestedPath.length + 1, nestedPath.length);
 	        }
-	        aggsWrapper = aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'].aggregations;
-	      });
+	
+	        nestedPath.split('.').forEach(function (nestedPathPart) {
+	          previousPathParts.push(nestedPathPart);
+	          var currentPath = groupNestedPath ? groupNestedPath + '.' + previousPathParts.join('.') : previousPathParts.join('.');
+	          var fullCurrentPath = esMappingKey ? esMappingKey + '.' + currentPath : currentPath;
+	          var currentFields = nestedFields[currentPath];
+	          if (!currentFields) return;
+	          if (!aggsWrapper[currentPath]) {
+	            aggsWrapper[currentPath + '_filter_nested'] = aggsWrapper[currentPath + '_filter_nested'] || {
+	              nested: {
+	                path: fullCurrentPath
+	              },
+	              aggregations: {}
+	            };
+	            aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'] = aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'] || {
+	              filter: esUtils.innerHitsFilter(fullCurrentPath, null, filter),
+	              aggregations: {}
+	            };
+	          }
+	          aggsWrapper = aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'].aggregations;
+	        });
+	      })();
 	    }
 	
 	    aggsWrapper[aggItem.field + '_' + aggItem.aggregate] = {};
