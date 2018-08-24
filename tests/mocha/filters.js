@@ -1,5 +1,6 @@
 import * as filters from '../../src/filters';
 import * as assert from 'assert';
+
 const fields = require('../resources/fields');
 
 describe('filters utility functions', () => {
@@ -16,8 +17,8 @@ describe('filters utility functions', () => {
 
     const esFilters = filters.kendo2es(kendoFilters, fields);
 
-    assert.equal(esFilters.and.filters[0].query.query_string.query, '(companyName.lowercase:*Dani*)');
-    assert.equal(esFilters.and.filters[0].query.query_string.analyze_wildcard, true);
+    assert.equal(esFilters.bool.must[0].query.query_string.query, '(companyName.lowercase:*Dani*)');
+    assert.equal(esFilters.bool.must[0].query.query_string.analyze_wildcard, true);
 
   });
 
@@ -34,45 +35,48 @@ describe('filters utility functions', () => {
 
     const esFilters = filters.kendo2es(kendoFilters, fields);
 
-    assert.equal(esFilters.and.filters[0].nested.path, 'organization.addresses');
-    assert.equal(esFilters.and.filters[0].nested.filter.and.filters[0].query.query_string.query,
-      '(addresses.city.lowercase:*Alej*)');
-    assert.equal(esFilters.and.filters[0].nested.filter.and.filters[0].query.query_string.analyze_wildcard, true);
-
+    assert.equal(esFilters.bool.must[0].nested.path, 'organization.addresses');
+    assert.equal(esFilters.bool.must[0].nested.filter.bool.must[0].query.query_string.query, '(addresses.city.lowercase:*Alej*)');
+    assert.equal(esFilters.bool.must[0].nested.filter.bool.must[0].query.query_string.analyze_wildcard, true);
   });
 
   it('should transform a complex kendo filter', () => {
-
     const kendoFilters = {
       logic: 'and',
-      filters: [{
-        field: 'companyName',
-        operator: 'contains',
-        value: 'Dani'
-      }, {
-        logic: 'or',
-        filters: [{
-          field: 'addresses_city',
+      filters: [
+        {
+          field: 'companyName',
           operator: 'contains',
-          value: 'Alej'
-        }, {
-          field: 'addresses_city',
-          operator: 'contains',
-          value: 'view'
-        }]
-      }]
+          value: 'Dani'
+        },
+        {
+          logic: 'or',
+          filters: [
+            {
+              field: 'addresses_city',
+              operator: 'contains',
+              value: 'Alej'
+            },
+            {
+              field: 'addresses_city',
+              operator: 'contains',
+              value: 'view'
+            }
+          ]
+        }
+      ]
     };
 
     const esFilters = filters.kendo2es(kendoFilters, fields);
 
-    assert.equal(esFilters.and.filters[0].query.query_string.query, '(companyName.lowercase:*Dani*)');
+    assert.equal(esFilters.bool.must[0].query.query_string.query, '(companyName.lowercase:*Dani*)');
 
-    assert.equal(esFilters.and.filters[1].or.filters[0].nested.path, 'organization.addresses');
+    assert.equal(esFilters.bool.must[1].bool.should[0].nested.path, 'organization.addresses');
 
-    assert.equal(esFilters.and.filters[1].or.filters[0].nested.filter.or.filters[0].query.query_string.query,
+    assert.equal(esFilters.bool.must[1].bool.should[0].nested.filter.bool.should[0].query.query_string.query,
       '(addresses.city.lowercase:*Alej*)');
 
-    assert.equal(esFilters.and.filters[1].or.filters[0].nested.filter.or.filters[1].query.query_string.query,
+    assert.equal(esFilters.bool.must[1].bool.should[0].nested.filter.bool.should[1].query.query_string.query,
       '(addresses.city.lowercase:*view*)');
 
   });
@@ -142,29 +146,29 @@ describe('filters utility functions', () => {
 
     const esFilters = filters.kendo2es(kendoFilters, fields);
 
-    const andQueries = esFilters.and.filters.map(
+    const mustBoolQueries = esFilters.bool.must.map(
       filter => filter.query && filter.query.query_string && filter.query.query_string.query);
-    const nestedAndQueries = esFilters.and.filters[9].nested.filter.and.filters.map(
+    const nestedAndQueries = esFilters.bool.must[9].nested.filter.bool.must.map(
       filter => filter.query && filter.query.query_string && filter.query.query_string.query);
 
     // contains
-    assert.equal(andQueries[0], '(companyName.lowercase:*Dani*)');
+    assert.equal(mustBoolQueries[0], '(companyName.lowercase:*Dani*)');
     // search
-    assert.equal(andQueries[1], 'companyName:Dani');
+    assert.equal(mustBoolQueries[1], 'companyName:Dani');
     // eq
-    assert.equal(andQueries[2], 'companyName.lowercase:Dani');
+    assert.equal(mustBoolQueries[2], 'companyName.lowercase:Dani');
     // neq
-    assert.equal(andQueries[3], 'NOT (companyName.lowercase:Dani)');
+    assert.equal(mustBoolQueries[3], 'NOT (companyName.lowercase:Dani)');
     // doesnotcontain
-    assert.equal(andQueries[4], 'NOT (companyName.lowercase:*Dani*)');
+    assert.equal(mustBoolQueries[4], 'NOT (companyName.lowercase:*Dani*)');
     // startswith
-    assert.equal(andQueries[5], 'companyName.lowercase:Dani*');
+    assert.equal(mustBoolQueries[5], 'companyName.lowercase:Dani*');
     // endswith
-    assert.equal(andQueries[6], 'companyName.lowercase:*Dani');
+    assert.equal(mustBoolQueries[6], 'companyName.lowercase:*Dani');
     // missing
-    assert.equal(andQueries[7], '_missing_:companyName.lowercase OR (companyName.lowercase:"")');
+    assert.equal(mustBoolQueries[7], '_missing_:companyName.lowercase OR (companyName.lowercase:"")');
     // exists
-    assert.equal(andQueries[8], '_exists_:companyName.lowercase AND NOT(companyName.lowercase:"")');
+    assert.equal(mustBoolQueries[8], '_exists_:companyName.lowercase AND NOT(companyName.lowercase:"")');
     // eq
     assert.equal(nestedAndQueries[0], 'accounts.amount:1');
     // lt

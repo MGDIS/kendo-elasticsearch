@@ -63,21 +63,18 @@ function _innerHits(nestedFields, esMappingKey, subTypes, sort, filter) {
   return innerHits;
 }
 
-// Traverse the filter to keep only the parts that concern
-// a nesting path
-function _innerHitsFilter(nestedPath, subType, filter) {
-  filter = $.extend(true, {}, filter);
-  const logicFilter = filter.or || filter.and;
-  if (logicFilter) {
-    logicFilter.filters = logicFilter.filters.filter(childFilter => {
-      return childFilter.and || childFilter.or ||
+function _manageBooleanFilter(nestedPath, subType, booleanFilter) {
+  return booleanFilter
+    .filter(childFilter => {
+      return (childFilter.bool && childFilter.bool.must) || (childFilter.bool && childFilter.bool.should) ||
         (childFilter.nested && childFilter.nested.path === nestedPath) ||
         (childFilter.not && childFilter.not.nested && childFilter.not.nested.path === nestedPath) ||
         (childFilter.has_child && childFilter.has_child.type === subType) ||
         (childFilter.not && childFilter.not.has_child && childFilter.not.has_child.type === subType) ||
         (childFilter.has_parent && childFilter.has_parent.type === subType) ||
         (childFilter.not && childFilter.not.has_parent && childFilter.not.has_parent.type === subType);
-    }).map(childFilter => {
+    })
+    .map(childFilter => {
       if (childFilter.nested) {
         return childFilter.nested.filter;
       } else if (childFilter.not && childFilter.not.nested) {
@@ -100,6 +97,19 @@ function _innerHitsFilter(nestedPath, subType, filter) {
         return _innerHitsFilter(nestedPath, childFilter);
       }
     });
+}
+
+// Traverse the filter to keep only the parts that concern
+// a nesting path
+function _innerHitsFilter(nestedPath, subType, filter) {
+  filter = $.extend(true, {}, filter);
+  if (filter.bool && filter.bool.must) {
+    filter.bool.must = _manageBooleanFilter(nestedPath, subType, filter.bool.must);
   }
+
+  if (filter.bool && filter.bool.should) {
+    filter.bool.should = _manageBooleanFilter(nestedPath, subType, filter.bool.should);
+  }
+
   return filter;
 }

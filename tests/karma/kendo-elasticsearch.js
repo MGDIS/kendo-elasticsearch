@@ -181,8 +181,8 @@
       type: 'POST',
       response: function (options) {
         var data = JSON.parse(options.data);
-        assert.equal(data.query.filtered.filter.and.filters.length, 1);
-        assert.equal(data.query.filtered.filter.and.filters[0].query.query_string.query,
+        assert.equal(data.query.filtered.filter.bool.must.length, 1);
+        assert.equal(data.query.filtered.filter.bool.must[0].query.query_string.query,
           'companyName:mgdis*');
         done();
       }
@@ -210,8 +210,8 @@
       type: 'POST',
       response: function (options) {
         var data = JSON.parse(options.data);
-        assert.equal(data.query.filtered.filter.and.filters.length, 1);
-        assert.equal(data.query.filtered.filter.and.filters[0].query.query_string.query,
+        assert.equal(data.query.filtered.filter.bool.must.length, 1);
+        assert.equal(data.query.filtered.filter.bool.must[0].query.query_string.query,
           'companyName.lowercase:mgdis*');
         done();
       }
@@ -237,8 +237,8 @@
       type: 'POST',
       response: function (options) {
         var data = JSON.parse(options.data);
-        assert.equal(data.query.filtered.filter.and.filters.length, 1);
-        assert.equal(data.query.filtered.filter.and.filters[0].query.query_string.query,
+        assert.equal(data.query.filtered.filter.bool.must.length, 1);
+        assert.equal(data.query.filtered.filter.bool.must[0].query.query_string.query,
           'companyName.lowercase:mgdis*');
         done();
       }
@@ -808,13 +808,14 @@
       response: function (options) {
         var data = JSON.parse(options.data);
 
-        assert.equal(data.query.filtered.filter.and.filters[0].nested.path, 'addresses');
+        assert.equal(data.query.filtered.filter.bool.must[0].nested.path, 'addresses');
         assert.ok(data.inner_hits.hasOwnProperty('addresses'));
         console.log(data.inner_hits);
         assert.ok(data.inner_hits.addresses.path.addresses.inner_hits
           .hasOwnProperty('addresses.telephones'));
+        console.log(JSON.stringify(data));
         assert.equal(data.inner_hits.addresses.path.addresses.inner_hits['addresses.telephones']
-          .path['addresses.telephones'].query.filtered.filter.and.filters.length, 0);
+          .path['addresses.telephones'].query.filtered.filter.bool.must.length, 0);
         this.responseText = {
           'hits': {
             'hits': [{
@@ -1212,7 +1213,7 @@
       type: 'POST',
       response: function (options) {
         var data = JSON.parse(options.data);
-        assert.equal(data.query.filtered.filter.and.filters[0].has_parent.type, 'organization');
+        assert.equal(data.query.filtered.filter.bool.must[0].has_parent.type, 'organization');
         this.responseText = {
           'hits': {
             'hits': [{
@@ -1295,7 +1296,7 @@
       type: 'POST',
       response: function (options) {
         var data = JSON.parse(options.data);
-        assert.equal(data.query.filtered.filter.and.filters[0].has_child.type, 'person');
+        assert.equal(data.query.filtered.filter.bool.must[0].has_child.type, 'person');
         this.responseText = {
           'hits': {
             'hits': [{
@@ -1379,7 +1380,7 @@
       type: 'POST',
       response: function (options) {
         var data = JSON.parse(options.data);
-        assert.equal(data.query.filtered.filter.and.filters[0].nested.path, 'organization.addresses');
+        assert.equal(data.query.filtered.filter.bool.must[0].nested.path, 'organization.addresses');
         assert.ok(data.inner_hits.hasOwnProperty('addresses'));
         assert.ok(data.inner_hits.addresses.path.hasOwnProperty('organization.addresses'));
         assert.ok(data.inner_hits.addresses.path['organization.addresses']
