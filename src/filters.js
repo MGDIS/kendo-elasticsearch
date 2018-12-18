@@ -128,7 +128,7 @@ function _kendo2es(kendoFilters, fields, initOptions) {
   }
 
   if (esMissingNested) {
-    result.bool.must_not = esMissingNested;
+    result.bool.must_not = [esMissingNested];
   }
 
   return result;
