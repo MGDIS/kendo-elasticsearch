@@ -29,16 +29,37 @@ function _kendo2es(kendoFilters, fields, initOptions) {
       if (!field) {
         throw new Error('Unknown field in filter: ' + filter.field);
       }
-      let esFilter = {
-        query: {
-          query_string: {
-            query: _filterParam(filter, fields, initOptions),
-            // support uppercase/lowercase and accents
-            analyze_wildcard: true
+      let esFilter;
+      try {
+        esFilter = {
+          query: {
+            query_string: {
+              query: _filterParam(filter, fields, initOptions),
+              // support uppercase/lowercase and accents
+              analyze_wildcard: true
+            }
           }
+        };
+      } catch (error) {
+        if (error.message === 'missing filter is not supported on nested fields') {
+          esMissingNested = {
+            nested: {
+              path: field.esFullNestedPath,
+              filter: {
+                  not: {
+                        exists: {
+                          field: `${field.esFullNestedPath}.${field.esName}`
+                        }
+                    }
+                }
+            }
+          }
+        } else {
+          throw error;
         }
       };
-      if (field.esNestedPath) {
+
+      if (field.esNestedPath && !esMissingNested) {
         const esNestedFilter = esNestedFilters[field.esNestedPath] || {
           nested: {
             path: field.esFullNestedPath,
@@ -47,7 +68,7 @@ function _kendo2es(kendoFilters, fields, initOptions) {
             }
           }
         };
-
+        
         switch (logicalConnective) {
           case 'and': {
             esNestedFilter.nested.filter.bool.must = esNestedFilter.nested.filter.bool.must || [];
@@ -103,6 +124,10 @@ function _kendo2es(kendoFilters, fields, initOptions) {
       result.bool.should = esFilters;
       break;
     }
+  }
+
+  if (esMissingNested) {
+    result.bool.must_not = esMissingNested
   }
 
   return result;
