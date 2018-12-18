@@ -20,6 +20,7 @@ function _kendo2es(kendoFilters, fields, initOptions) {
 
   const esFilters = [];
   const esNestedFilters = {};
+  let esMissingNested = {};
 
   filters.forEach(filter => {
     if (filter.logic) {
@@ -46,14 +47,14 @@ function _kendo2es(kendoFilters, fields, initOptions) {
             nested: {
               path: field.esFullNestedPath,
               filter: {
-                  not: {
-                        exists: {
-                          field: `${field.esFullNestedPath}.${field.esName}`
-                        }
-                    }
+                not: {
+                  exists: {
+                    field: `${field.esFullNestedPath}.${field.esName}`
+                  }
                 }
+              }
             }
-          }
+          };
         } else {
           throw error;
         }
@@ -68,7 +69,7 @@ function _kendo2es(kendoFilters, fields, initOptions) {
             }
           }
         };
-        
+
         switch (logicalConnective) {
           case 'and': {
             esNestedFilter.nested.filter.bool.must = esNestedFilter.nested.filter.bool.must || [];
@@ -127,7 +128,7 @@ function _kendo2es(kendoFilters, fields, initOptions) {
   }
 
   if (esMissingNested) {
-    result.bool.must_not = esMissingNested
+    result.bool.must_not = esMissingNested;
   }
 
   return result;
