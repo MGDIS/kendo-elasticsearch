@@ -577,39 +577,37 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var nestedPath = field.esNestedPath;
 	    var aggsWrapper = esAggs;
 	    if (groupNestedPath !== nestedPath) {
-	      (function () {
-	        var previousPathParts = [];
-	        if (groupNestedPath && nestedPath.indexOf(groupNestedPath) !== 0) {
-	          esAggs.group_reverse_nested = esAggs.group_reverse_nested || {
-	            reverse_nested: {},
+	      var previousPathParts = [];
+	      if (groupNestedPath && nestedPath.indexOf(groupNestedPath) !== 0) {
+	        esAggs.group_reverse_nested = esAggs.group_reverse_nested || {
+	          reverse_nested: {},
+	          aggregations: {}
+	        };
+	        aggsWrapper = esAggs.group_reverse_nested.aggregations;
+	      } else if (groupNestedPath) {
+	        nestedPath = nestedPath.substr(groupNestedPath.length + 1, nestedPath.length);
+	      }
+	
+	      nestedPath.split('.').forEach(function (nestedPathPart) {
+	        previousPathParts.push(nestedPathPart);
+	        var currentPath = groupNestedPath ? groupNestedPath + '.' + previousPathParts.join('.') : previousPathParts.join('.');
+	        var fullCurrentPath = esMappingKey ? esMappingKey + '.' + currentPath : currentPath;
+	        var currentFields = nestedFields[currentPath];
+	        if (!currentFields) return;
+	        if (!aggsWrapper[currentPath]) {
+	          aggsWrapper[currentPath + '_filter_nested'] = aggsWrapper[currentPath + '_filter_nested'] || {
+	            nested: {
+	              path: fullCurrentPath
+	            },
 	            aggregations: {}
 	          };
-	          aggsWrapper = esAggs.group_reverse_nested.aggregations;
-	        } else if (groupNestedPath) {
-	          nestedPath = nestedPath.substr(groupNestedPath.length + 1, nestedPath.length);
+	          aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'] = aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'] || {
+	            filter: esUtils.innerHitsFilter(fullCurrentPath, null, filter),
+	            aggregations: {}
+	          };
 	        }
-	
-	        nestedPath.split('.').forEach(function (nestedPathPart) {
-	          previousPathParts.push(nestedPathPart);
-	          var currentPath = groupNestedPath ? groupNestedPath + '.' + previousPathParts.join('.') : previousPathParts.join('.');
-	          var fullCurrentPath = esMappingKey ? esMappingKey + '.' + currentPath : currentPath;
-	          var currentFields = nestedFields[currentPath];
-	          if (!currentFields) return;
-	          if (!aggsWrapper[currentPath]) {
-	            aggsWrapper[currentPath + '_filter_nested'] = aggsWrapper[currentPath + '_filter_nested'] || {
-	              nested: {
-	                path: fullCurrentPath
-	              },
-	              aggregations: {}
-	            };
-	            aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'] = aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'] || {
-	              filter: esUtils.innerHitsFilter(fullCurrentPath, null, filter),
-	              aggregations: {}
-	            };
-	          }
-	          aggsWrapper = aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'].aggregations;
-	        });
-	      })();
+	        aggsWrapper = aggsWrapper[currentPath + '_filter_nested'].aggregations[currentPath + '_filter'].aggregations;
+	      });
 	    }
 	
 	    aggsWrapper[aggItem.field + '_' + aggItem.aggregate] = {};
@@ -993,6 +991,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	  var esFilters = [];
 	  var esNestedFilters = {};
+	  var esMissingNested = void 0;
 	
 	  filters.forEach(function (filter) {
 	    if (filter.logic) {
@@ -1002,16 +1001,37 @@ return /******/ (function(modules) { // webpackBootstrap
 	      if (!field) {
 	        throw new Error('Unknown field in filter: ' + filter.field);
 	      }
-	      var esFilter = {
-	        query: {
-	          query_string: {
-	            query: _filterParam(filter, fields, initOptions),
-	            // support uppercase/lowercase and accents
-	            analyze_wildcard: true
+	      var esFilter = void 0;
+	      try {
+	        esFilter = {
+	          query: {
+	            query_string: {
+	              query: _filterParam(filter, fields, initOptions),
+	              // support uppercase/lowercase and accents
+	              analyze_wildcard: true
+	            }
 	          }
+	        };
+	      } catch (error) {
+	        if (error.message === 'missing filter is not supported on nested fields') {
+	          esMissingNested = {
+	            nested: {
+	              path: field.esFullNestedPath,
+	              filter: {
+	                not: {
+	                  exists: {
+	                    field: field.esFullNestedPath + '.' + field.esName
+	                  }
+	                }
+	              }
+	            }
+	          };
+	        } else {
+	          throw error;
 	        }
 	      };
-	      if (field.esNestedPath) {
+	
+	      if (field.esNestedPath && !esMissingNested) {
 	        var esNestedFilter = esNestedFilters[field.esNestedPath] || {
 	          nested: {
 	            path: field.esFullNestedPath,
@@ -1079,6 +1099,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	        result.bool.should = esFilters;
 	        break;
 	      }
+	  }
+	
+	  if (esMissingNested) {
+	    result.bool.must_not = [esMissingNested];
 	  }
 	
 	  return result;
