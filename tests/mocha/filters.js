@@ -53,8 +53,8 @@ describe('filters utility functions', () => {
 
     const esFilters = filters.kendo2es(kendoFilters, fields);
 
-    assert.equal(esFilters.bool.must_not[0].nested.path, 'organization.addresses');
-    assert.equal(esFilters.bool.must_not[0].nested.filter.not.exists.field, 'organization.addresses.city');
+    assert.equal(esFilters.bool.must[0].not.nested.path, 'addresses');
+    assert.equal(esFilters.bool.must[0].not.nested.filter.exists.field, 'addresses.city');
   });
 
   it('should transform a complex kendo filter', () => {

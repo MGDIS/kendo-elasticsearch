@@ -20,7 +20,6 @@ function _kendo2es(kendoFilters, fields, initOptions) {
 
   const esFilters = [];
   const esNestedFilters = {};
-  let esMissingNested;
 
   filters.forEach(filter => {
     if (filter.logic) {
@@ -43,13 +42,13 @@ function _kendo2es(kendoFilters, fields, initOptions) {
         };
       } catch (error) {
         if (error.message === 'missing filter is not supported on nested fields') {
-          esMissingNested = {
-            nested: {
-              path: field.esFullNestedPath,
-              filter: {
-                not: {
+          esFilter = {
+            not: {
+              nested: {
+                path: field.esNestedPath,
+                filter: {
                   exists: {
-                    field: `${field.esFullNestedPath}.${field.esName}`
+                    field: field.esSearchName
                   }
                 }
               }
@@ -60,7 +59,7 @@ function _kendo2es(kendoFilters, fields, initOptions) {
         }
       };
 
-      if (field.esNestedPath && !esMissingNested) {
+      if (field.esNestedPath && !esFilter.not) {
         const esNestedFilter = esNestedFilters[field.esNestedPath] || {
           nested: {
             path: field.esFullNestedPath,
@@ -125,10 +124,6 @@ function _kendo2es(kendoFilters, fields, initOptions) {
       result.bool.should = esFilters;
       break;
     }
-  }
-
-  if (esMissingNested) {
-    result.bool.must_not = [esMissingNested];
   }
 
   return result;

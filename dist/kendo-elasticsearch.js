@@ -991,7 +991,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	  var esFilters = [];
 	  var esNestedFilters = {};
-	  var esMissingNested = void 0;
 	
 	  filters.forEach(function (filter) {
 	    if (filter.logic) {
@@ -1014,13 +1013,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	        };
 	      } catch (error) {
 	        if (error.message === 'missing filter is not supported on nested fields') {
-	          esMissingNested = {
-	            nested: {
-	              path: field.esFullNestedPath,
-	              filter: {
-	                not: {
+	          esFilter = {
+	            not: {
+	              nested: {
+	                path: field.esNestedPath,
+	                filter: {
 	                  exists: {
-	                    field: field.esFullNestedPath + '.' + field.esName
+	                    field: field.esSearchName
 	                  }
 	                }
 	              }
@@ -1031,7 +1030,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        }
 	      };
 	
-	      if (field.esNestedPath && !esMissingNested) {
+	      if (field.esNestedPath && !esFilter.not) {
 	        var esNestedFilter = esNestedFilters[field.esNestedPath] || {
 	          nested: {
 	            path: field.esFullNestedPath,
@@ -1099,10 +1098,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	        result.bool.should = esFilters;
 	        break;
 	      }
-	  }
-	
-	  if (esMissingNested) {
-	    result.bool.must_not = [esMissingNested];
 	  }
 	
 	  return result;
