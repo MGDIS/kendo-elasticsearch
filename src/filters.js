@@ -20,7 +20,7 @@ function _kendo2es(kendoFilters, fields, initOptions) {
 
   const esFilters = [];
   const esNestedFilters = {};
-  let esMissingNested = {};
+  let esMissingNested;
 
   filters.forEach(filter => {
     if (filter.logic) {
