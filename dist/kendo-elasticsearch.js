@@ -1001,7 +1001,21 @@ return /******/ (function(modules) { // webpackBootstrap
 	        throw new Error('Unknown field in filter: ' + filter.field);
 	      }
 	      var esFilter = void 0;
-	      try {
+	      if (filter.operator === 'missing' && (field.esNestedPath || field.esParentType || field.esChildType)) {
+	        // missing in a nested document should be implemented as a "not nested exists"
+	        esFilter = {
+	          not: {
+	            nested: {
+	              path: field.esNestedPath,
+	              filter: {
+	                exists: {
+	                  field: field.esSearchName
+	                }
+	              }
+	            }
+	          }
+	        };
+	      } else {
 	        esFilter = {
 	          query: {
 	            query_string: {
@@ -1011,23 +1025,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	            }
 	          }
 	        };
-	      } catch (error) {
-	        if (error.message === 'missing filter is not supported on nested fields') {
-	          esFilter = {
-	            not: {
-	              nested: {
-	                path: field.esNestedPath,
-	                filter: {
-	                  exists: {
-	                    field: field.esSearchName
-	                  }
-	                }
-	              }
-	            }
-	          };
-	        } else {
-	          throw error;
-	        }
 	      };
 	
 	      if (field.esNestedPath && !esFilter.not) {
@@ -1173,12 +1170,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	      case 'endswith':
 	        return fieldEscaped + ':*' + valueEscaped;
 	      case 'missing':
-	        if (field.esNestedPath || field.esParentType || field.esChildType) {
-	          // missing in a nested document should be implemented as a "not nested exists"
-	          // but this is not really doable when mixing with other filters
-	          // see https://github.com/elastic/elasticsearch/issues/3495
-	          throw new Error('missing filter is not supported on nested fields');
-	        }
 	        expression = '_missing_:' + fieldEscaped;
 	        if (field.type === 'string') {
 	          expression += ' OR (' + fieldEscaped + ':"")';
