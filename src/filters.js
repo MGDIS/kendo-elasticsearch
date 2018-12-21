@@ -29,16 +29,34 @@ function _kendo2es(kendoFilters, fields, initOptions) {
       if (!field) {
         throw new Error('Unknown field in filter: ' + filter.field);
       }
-      let esFilter = {
-        query: {
-          query_string: {
-            query: _filterParam(filter, fields, initOptions),
-            // support uppercase/lowercase and accents
-            analyze_wildcard: true
+      let esFilter;
+      if (filter.operator === 'missing' && (field.esNestedPath || field.esParentType || field.esChildType)) {
+        // missing in a nested document should be implemented as a "not nested exists"
+        esFilter = {
+          not: {
+            nested: {
+              path: field.esNestedPath,
+              filter: {
+                exists: {
+                  field: field.esSearchName
+                }
+              }
+            }
           }
-        }
+        };
+      } else {
+        esFilter = {
+          query: {
+            query_string: {
+              query: _filterParam(filter, fields, initOptions),
+              // support uppercase/lowercase and accents
+              analyze_wildcard: true
+            }
+          }
+        };
       };
-      if (field.esNestedPath) {
+
+      if (field.esNestedPath && !esFilter.not) {
         const esNestedFilter = esNestedFilters[field.esNestedPath] || {
           nested: {
             path: field.esFullNestedPath,
@@ -181,12 +199,6 @@ function _filterParam(kendoFilter, fields, initOptions) {
       case 'endswith':
         return fieldEscaped + ':*' + valueEscaped;
       case 'missing':
-        if (field.esNestedPath || field.esParentType || field.esChildType) {
-          // missing in a nested document should be implemented as a "not nested exists"
-          // but this is not really doable when mixing with other filters
-          // see https://github.com/elastic/elasticsearch/issues/3495
-          throw new Error('missing filter is not supported on nested fields');
-        }
         expression = '_missing_:' + fieldEscaped;
         if (field.type === 'string') {
           expression += ' OR (' + fieldEscaped + ':"")';

@@ -40,6 +40,23 @@ describe('filters utility functions', () => {
     assert.equal(esFilters.bool.must[0].nested.filter.bool.must[0].query.query_string.analyze_wildcard, true);
   });
 
+  it('should transform a nested kendo "missing" filter', () => {
+
+    const kendoFilters = {
+      logic: 'and',
+      filters: [{
+        field: 'addresses_city',
+        operator: 'missing',
+        value: 'Alej'
+      }]
+    };
+
+    const esFilters = filters.kendo2es(kendoFilters, fields);
+
+    assert.equal(esFilters.bool.must[0].not.nested.path, 'addresses');
+    assert.equal(esFilters.bool.must[0].not.nested.filter.exists.field, 'addresses.city');
+  });
+
   it('should transform a complex kendo filter', () => {
     const kendoFilters = {
       logic: 'and',
